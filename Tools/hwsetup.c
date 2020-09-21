@@ -4,7 +4,10 @@
  *  Descriptions: Implementation of functions to setup hardware of the board
  */
 
-#include "hwsetup.h"
+
+#include "driverlib.h"
+#include "Tools/hwsetup.h"
+#include "Tools/myuart.h"
 
 /* we set the CPU frequency as 16 MHz by default */
 unsigned int FreqLevel = 8;
@@ -71,7 +74,8 @@ void prvSetupHardware( void )
     PMM_unlockLPM5();
 
     /* Initialize UART */
-    uartinit();
+    uartInit(EUSCI_A0_BASE);
+    // uartInit(EUSCI_A3_BASE);
 }
 
 /*

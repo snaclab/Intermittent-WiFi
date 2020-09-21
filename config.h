@@ -13,7 +13,7 @@
 
 #define DEBUGOVERFLOW //take it out for fast recovery
 
-#define NUMTASK 12 //10 user tasks + 2 FreeRTOS tasks
+#define NUMTASK 6 //10 user tasks + 2 FreeRTOS tasks
 #define MAXREAD 8
 
 //Used for demo

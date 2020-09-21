@@ -9,7 +9,8 @@ uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
 //time counter
 #pragma NOINIT(timeCounter)
 unsigned long timeCounter;
-int uartsetup = 0;
+int uartA0setup = 0;
+int uartA3setup = 0;
 
 /* Use for recovery */
 #pragma DATA_SECTION(recoverable, ".map") //indicate whether task stacks exist
