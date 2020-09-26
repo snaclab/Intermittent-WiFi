@@ -23,7 +23,7 @@ void demo()
 {
     xTaskCreate( math32, "math32", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDMATH32, INVM);
     xTaskCreate( matrixmultiplication, "matrix multiplication", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDMATMUL, INVM);
-    print2uart(UART_NULL_BASE, "new demo Task Create Done\r\n");
+    dprint2uart(UART_STDOUT, "new demo Task Create Done\r\n");
 }
 
 typedef unsigned short UInt16;

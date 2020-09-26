@@ -5,14 +5,15 @@
 
 #include "driverlib.h"
 
-#define UARTA3_BUFFERSIZE 512
-#define UART_NULL_BASE 0
+#define UARTA3_BUFFERSIZE  1024
+#define UART_ESP           EUSCI_A3_BASE
+#define UART_STDOUT        EUSCI_A0_BASE
 
 extern unsigned int FreqLevel;
 extern int uartA0setup;
 extern int uartA3setup;
 
-//#define DEBUG 1
+#define DEBUG 1
 
 // Init serial
 void uartInit(unsigned int UART);
@@ -21,11 +22,11 @@ void print2uart(unsigned int UART, char* format,...);
 // dummy function
 void dummyPrint(unsigned int UART, char* format,...);
 // Serial read from Uart
-void readFromUartA3(unsigned char *data, unsigned int size);
+unsigned char readFromUartA3();
 // Check whether device got message
 bool uartA3GotMessage();
 // Flush Uart
-void uartFlush();
+void uartBufferFlush();
 
 // Serial printf for debugging
 #ifdef DEBUG
@@ -42,4 +43,8 @@ char *convert(unsigned int num, int base);
 //Convert long integer to a string
 char *convertl(unsigned long num, int base);
 
-#endif
+//DEBUG
+char *printUARTBuffer(void);
+//End DEBUG
+
+#endif // UART_DRIVER_LIB_H_

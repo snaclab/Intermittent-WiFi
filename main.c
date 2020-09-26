@@ -9,14 +9,15 @@
 #include <semphr.h>
 #include <stdio.h>
 
-#include <config.h>
-#include <RecoveryHandler/Recovery.h>
-#include <Tools/myuart.h>
-#include <Tools/hwsetup.h>
-#include <TaskManager/taskManager.h>
-#include <DataManager/SimpDB.h>
-#include <main.h>
-#include <demo.h>
+#include "config.h"
+#include "RecoveryHandler/Recovery.h"
+#include "Tools/myuart.h"
+#include "Tools/hwsetup.h"
+#include "TaskManager/taskManager.h"
+#include "DataManager/SimpDB.h"
+#include "main.h"
+#include "demo.h"
+#include "wifi.h"
 
 //record some information for status of lengthy tasks
 #pragma NOINIT(runHigh)
@@ -78,7 +79,10 @@ int main( void )
 	    initVDetector();
 
 	    //create application tasks here
-	    demo();
+	    //demo();
+
+		// create wifi
+		wifi();
 
 	    //start scheduler of freeRTOS
 	    vTaskStartScheduler();

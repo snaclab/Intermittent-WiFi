@@ -1,7 +1,7 @@
 /*
  * SimpDB.cpp
  *
- *  Created on: 2017¦~7¤ë12¤é
+ *  Created on: 2017ï¿½~7ï¿½ï¿½12ï¿½ï¿½
  *      Author: WeiMingChen
  */
 
@@ -336,7 +336,7 @@ void registerTCB(int id){
  * parameters: the TCB number
  * return: none
  * */
-void unresgisterTCB(int id)
+void unregisterTCB(int id)
 {
     int i;
     unsigned short TCB = pxCurrentTCB->uxTCBNumber;

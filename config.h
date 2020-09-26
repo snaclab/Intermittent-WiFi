@@ -13,13 +13,14 @@
 
 #define DEBUGOVERFLOW //take it out for fast recovery
 
-#define NUMTASK 6 //10 user tasks + 2 FreeRTOS tasks
-#define MAXREAD 8
+#define NUMTASK   6 //4 user tasks + 2 FreeRTOS tasks
+#define MAXREAD   8
 
 //Used for demo
-#define IDIDLE 0
-#define IDTIMER 1
-#define IDMATMUL 2
-#define IDMATH32 3
+#define IDIDLE    0
+#define IDTIMER   1
+#define IDMATMUL  2
+#define IDMATH32  3
+#define IDWIFI    4
 
 #endif /* CONFIG_H_ */
