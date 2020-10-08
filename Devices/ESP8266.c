@@ -1,10 +1,11 @@
 
 #include "ESP8266.h"
+#include "driverlib.h"
 #include "Tools/myuart.h"
 
 // TODO: need to check reset pin for msp430 + esp8266-01
-#define RESET_PIN       GPIO_PIN1
-#define RESET_PORT      GPIO_PORT_P6
+#define RESET_PIN       GPIO_PIN4
+#define RESET_PORT      GPIO_PORT_P3
 
 #define AT              "AT\r\n"  // Test AT starup
 #define AT_RST          "AT+RST\r\n" // Restarts the module (soft reset)
@@ -201,4 +202,13 @@ bool ESP8266_reset(void)
     print2uart(UART_ESP, AT_RST);
 
     return commandSuccess();
+}
+
+void ESP8266_hardReset(void)
+{
+    GPIO_setOutputLowOnPin(RESET_PORT, RESET_PIN);
+
+    __delay_cycles(24000000);
+
+    GPIO_setOutputHighOnPin(RESET_PORT, RESET_PIN);
 }

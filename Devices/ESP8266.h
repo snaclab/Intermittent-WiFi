@@ -28,6 +28,8 @@ bool ESP8266_establishConnection(char id, unsigned char type, char *address, cha
 bool ESP8266_enableMultipleConnecitons(bool enable);
 bool ESP8266_sendData(char id, char *data, unsigned int dataSize);
 
+void ESP8266_hardReset(void);
+
 char *ESP8266_getBuffer(void);
 
 #endif // DEVCIES_ESP8266_H_

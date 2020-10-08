@@ -77,6 +77,9 @@ bool initConnectModule(void)
         return false;
     }
 
+    // Working: hard reset ESP8266
+    // ESP8266_hardReset();
+
     while (Tries) {
         if (ESP8266_checkConnection()) {
             return true;
