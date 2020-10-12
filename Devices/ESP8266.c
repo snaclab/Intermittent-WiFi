@@ -12,9 +12,9 @@
 #define AT_GMR          "AT+GMR\r\n" // Check version information
 #define AT_GSLP         "AT+GSLP\r\n" // Enter Deep-sleep mode
 #define ATE             "ATE\r\n" // Configures echoing of AT commands
-#define AT_CWMODE       "AT+CWMODE" // set WiFi mode (STA/AP/STA+AP)
+#define AT_CWMODE       "AT+CWMODE_CUR" // set WiFi mode (STA/AP/STA+AP)
 #define AT_CWMODE_Q     "AT+CWMODE?\r\n" // get current WiFi mode
-#define AT_CWJAP        "AT+CWJAP" // Connect to AP
+#define AT_CWJAP        "AT+CWJAP_CUR" // Connect to AP
 #define AT_CWLAP        "AT+CWLAP\r\n" // List Available APs
 #define AT_CWQAP        "AT+CWQAP\r\n" // Disconnects from AP
 #define AT_CWLIF        "AT+CWLIF\r\n" // get info SoftAP station from connected ESP8266
@@ -37,100 +37,88 @@
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE] = "";
 
+void emptyBuffer(void)
+{
+    memset(ESP8266_Buffer, 0, ESP8266_BUFFER_SIZE);
+}
+
 bool waitForResponse(unsigned int Tries)
 {
     unsigned char c;
     unsigned int i = 0;
 
+    emptyBuffer();
+    
     while(Tries) {
-        if (uartA3GotMessage()) {
-            while (uartA3GotMessage()) {
-                c = readFromUartA3();
+        while (uartA3GotMessage()) {
+            c = readFromUartA3();
 
-                if (i > ESP8266_BUFFER_SIZE) {
-                    return false;
-                } else {
-                    ESP8266_Buffer[i++] = c;
-                }
+            if (i > ESP8266_BUFFER_SIZE) {
+                return false;
+            } else {
+                ESP8266_Buffer[i++] = c;
             }
-
+        }
+        if (strstr(ESP8266_Buffer, "OK") != NULL) {
+            dprint2uart(UART_STDOUT, "Wait for %d tries. \r\n", 2000000-Tries);
             ESP8266_Buffer[i++] = '\0';
             return true;
         }
 
         Tries--;
-        __delay_cycles(2400000);
+        __delay_cycles(4800);
     }
 
     return false;
 }
 
-bool commandSuccess()
-{
-    if (!waitForResponse(ESP8266_RECEIVE_TRIES)) {
-        return false;
-    }
-    if (strstr(ESP8266_Buffer, "OK") == NULL) {
-        return false;
-    }
-    return true;
-}
-
 bool ESP8266_getCurrentWiFiMode(void)
 {
     print2uart(UART_ESP, AT_CWMODE_Q);
-    __delay_cycles(12000000);
 
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_changeWiFiMode(unsigned int MODE)
 {
     print2uart(UART_ESP, "%s=%d\r\n", AT_CWMODE, MODE);
-    __delay_cycles(24000000);
 
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_checkConnection(void)
 {
     print2uart(UART_ESP, AT);
-    __delay_cycles(12000000);
 
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_getSystemInfo(void)
 {
     print2uart(UART_ESP, AT_GMR);
-    __delay_cycles(12000000);
 
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_availableAPs(void)
 {
     print2uart(UART_ESP, AT_CWLAP);
-    __delay_cycles(48000000);
 
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_connectToAP(char *SSID, char *password)
 {
     print2uart(UART_ESP, "%s=\"%s\",\"%s\"\r\n", AT_CWJAP, SSID, password);
-
-    __delay_cycles(72000000);
     
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_disconnectFromAP(void)
 {
     print2uart(UART_ESP, AT_CWQAP);
-    __delay_cycles(48000000);
 
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_establishConnection(char id, unsigned char type, char *address, char *port)
@@ -148,9 +136,7 @@ bool ESP8266_establishConnection(char id, unsigned char type, char *address, cha
 
     print2uart(UART_ESP, "%s=%c,\"%s\",\"%s\",%s\r\n", AT_CIPSTART, id, ct, address, port);
 
-    __delay_cycles(24000000);
-
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_enableMultipleConnecitons(bool enable)
@@ -168,9 +154,7 @@ bool ESP8266_enableMultipleConnecitons(bool enable)
 
     print2uart(UART_ESP, "%s=%c\r\n", AT_CIPMUX, c);
 
-    __delay_cycles(12000000);
-
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 bool ESP8266_sendData(char id, char *data, unsigned int dataSize)
@@ -179,17 +163,13 @@ bool ESP8266_sendData(char id, char *data, unsigned int dataSize)
     ltoa(dataSize, size);
     print2uart(UART_ESP, "%s=%c,%s\r\n", AT_CIPSEND, id, size);
 
-    __delay_cycles(24000000);
-
-    if (!commandSuccess()) {
+    if (!waitForResponse(ESP8266_RECEIVE_TRIES)) {
         return false;
     }
 
     print2uart(UART_ESP, data);
 
-    __delay_cycles(48000000);
-
-    return commandSuccess();
+    return waitForResponse(ESP8266_RECEIVE_TRIES);
 }
 
 char *ESP8266_getBuffer(void)
@@ -197,11 +177,11 @@ char *ESP8266_getBuffer(void)
     return ESP8266_Buffer;
 }
 
-bool ESP8266_reset(void)
+void ESP8266_reset(void)
 {
     print2uart(UART_ESP, AT_RST);
 
-    return commandSuccess();
+    __delay_cycles(24000000);
 }
 
 void ESP8266_hardReset(void)

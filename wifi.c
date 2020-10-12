@@ -23,22 +23,30 @@ void wifiConnect(void)
 
     if (!initConnectModule()) {
         dprint2uart(UART_STDOUT, "Initialize fail!!\r\n");
+        dprint2uart(UART_STDOUT, "%s \r\n", ESP_Data);
         goto END;
     }
 
-    if (!ESP8266_getSystemInfo()) {
-        dprint2uart(UART_STDOUT,
-                    "Get system info fail with response: %s \r\n", ESP_Data);
-        goto END;
-    }
-    dprint2uart(UART_STDOUT, "%s \r\n", ESP_Data);
+     dprint2uart(UART_STDOUT, "begin get SystemInfo \r\n");
+
+     if (!ESP8266_getSystemInfo()) {
+         dprint2uart(UART_STDOUT,
+                     "Get system info fail with response: %s \r\n", ESP_Data);
+         goto END;
+     }
+     dprint2uart(UART_STDOUT, "%s \r\n", ESP_Data);
+
+    dprint2uart(UART_STDOUT, "begin get WiFi Mode \r\n");
 
     if (!ESP8266_getCurrentWiFiMode()) {
         dprint2uart(UART_STDOUT,
                     "Get WiFi mode fail with response: %s \r\n", ESP_Data);
         goto END;
     }
+
     dprint2uart(UART_STDOUT, "%s \r\n", ESP_Data);
+
+    dprint2uart(UART_STDOUT, "begin connect to AP \r\n");
 
     if (!ESP8266_connectToAP("LinIPHONE", "0978637728")) {
         dprint2uart(UART_STDOUT,
@@ -60,6 +68,7 @@ void wifiConnect(void)
     dprint2uart(UART_STDOUT, "pass pass \r\n");
 
 END:
+    dprint2uart(UART_STDOUT, "At the end \r\n");
     unregisterTCB(IDWIFI);
     return;
 }
@@ -73,12 +82,10 @@ bool initConnectModule(void)
     uartBufferFlush();
 
     // Reset ESP8266
-    if (!ESP8266_reset()) {
-        return false;
-    }
+    // ESP8266_reset();
 
     // Working: hard reset ESP8266
-    // ESP8266_hardReset();
+    ESP8266_hardReset();
 
     while (Tries) {
         if (ESP8266_checkConnection()) {
