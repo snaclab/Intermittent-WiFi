@@ -1,5 +1,6 @@
 
 #include "ESP8266.h"
+#include "FreeRTOS.h"
 #include "driverlib.h"
 #include "Tools/myuart.h"
 
@@ -18,10 +19,11 @@
 #define AT_CWLAP        "AT+CWLAP\r\n" // List Available APs
 #define AT_CWQAP        "AT+CWQAP\r\n" // Disconnects from AP
 #define AT_CWLIF        "AT+CWLIF\r\n" // get info SoftAP station from connected ESP8266
-#define AT_CWDHCP       "AT+CWDHCP\r\n" // set DHCP
+#define AT_CWDHCP       "AT+CWDHCP_CUR" // set DHCP
+#define AT_CWDHCP_Q     "AT+CWDHCP_CUR?\r\n" // get DHCP status
 #define AT_CIPSTAMAC    "AT+CIPSTAMAC\r\n" // set station MAC address
 #define AT_CIPAPMAC     "AT+CIPAPMAC\r\n" // set AP MAC address
-#define AT_CIPSTA       "AT+CIPSTA\r\n" // set STA IP address
+#define AT_CIPSTA       "AT+CIPSTA_CUR" // set STA IP address
 #define AT_CIPAP        "AT+CIPAP" // set AP IP address
 #define AT_CIPSTATUS    "AT+CIPSTATUS\r\n" // check connection status
 #define AT_CIPSTART     "AT+CIPSTART" // establish TCP/UDP/SSL connection
@@ -36,20 +38,23 @@
 #define IPD             "+IPD\r\n" 
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE] = "";
+const TickType_t timeout = 20000;
 
 void emptyBuffer(void)
 {
     memset(ESP8266_Buffer, 0, ESP8266_BUFFER_SIZE);
 }
 
-bool waitForResponse(unsigned int Tries)
+bool waitForResponse(char *target)
 {
     unsigned char c;
     unsigned int i = 0;
 
     emptyBuffer();
+
+    TickType_t startTime = xTaskGetTickCount();
     
-    while(Tries) {
+    while(xTaskGetTickCount() - startTime < timeout) {
         while (uartA3GotMessage()) {
             c = readFromUartA3();
 
@@ -59,14 +64,11 @@ bool waitForResponse(unsigned int Tries)
                 ESP8266_Buffer[i++] = c;
             }
         }
-        if (strstr(ESP8266_Buffer, "OK") != NULL) {
-            dprint2uart(UART_STDOUT, "Wait for %d tries. \r\n", 2000000-Tries);
+        // Need to find a smarter solution
+        if (strstr(ESP8266_Buffer, target) != NULL) {
             ESP8266_Buffer[i++] = '\0';
             return true;
         }
-
-        Tries--;
-        __delay_cycles(4800);
     }
 
     return false;
@@ -76,49 +78,77 @@ bool ESP8266_getCurrentWiFiMode(void)
 {
     print2uart(UART_ESP, AT_CWMODE_Q);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getIP(void)
+{
+    print2uart(UART_ESP, AT_CIFSR);
+
+    return waitForResponse("OK");
 }
 
 bool ESP8266_changeWiFiMode(unsigned int MODE)
 {
     print2uart(UART_ESP, "%s=%d\r\n", AT_CWMODE, MODE);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 bool ESP8266_checkConnection(void)
 {
     print2uart(UART_ESP, AT);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 bool ESP8266_getSystemInfo(void)
 {
     print2uart(UART_ESP, AT_GMR);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 bool ESP8266_availableAPs(void)
 {
     print2uart(UART_ESP, AT_CWLAP);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getDHCPStatus(void)
+{
+    print2uart(UART_ESP, AT_CWDHCP_Q);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_setDHCP(int mode, int en)
+{
+    print2uart(UART_ESP, "%s=%d,%d\r\n", AT_CWDHCP, mode, en);
+
+    return waitForResponse("OK");
 }
 
 bool ESP8266_connectToAP(char *SSID, char *password)
 {
     print2uart(UART_ESP, "%s=\"%s\",\"%s\"\r\n", AT_CWJAP, SSID, password);
     
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 bool ESP8266_disconnectFromAP(void)
 {
     print2uart(UART_ESP, AT_CWQAP);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
+}
+
+bool ESP8266_setStaticIP(char *IP)
+{
+    print2uart(UART_ESP, "%s=\"%s\"\r\n", AT_CIPSTA, IP);
+
+    return waitForResponse("OK");
 }
 
 bool ESP8266_establishConnection(char id, unsigned char type, char *address, char *port)
@@ -136,7 +166,7 @@ bool ESP8266_establishConnection(char id, unsigned char type, char *address, cha
 
     print2uart(UART_ESP, "%s=%c,\"%s\",\"%s\",%s\r\n", AT_CIPSTART, id, ct, address, port);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 bool ESP8266_enableMultipleConnecitons(bool enable)
@@ -154,7 +184,7 @@ bool ESP8266_enableMultipleConnecitons(bool enable)
 
     print2uart(UART_ESP, "%s=%c\r\n", AT_CIPMUX, c);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 bool ESP8266_sendData(char id, char *data, unsigned int dataSize)
@@ -163,13 +193,13 @@ bool ESP8266_sendData(char id, char *data, unsigned int dataSize)
     ltoa(dataSize, size);
     print2uart(UART_ESP, "%s=%c,%s\r\n", AT_CIPSEND, id, size);
 
-    if (!waitForResponse(ESP8266_RECEIVE_TRIES)) {
+    if (!waitForResponse("OK")) {
         return false;
     }
 
     print2uart(UART_ESP, data);
 
-    return waitForResponse(ESP8266_RECEIVE_TRIES);
+    return waitForResponse("OK");
 }
 
 char *ESP8266_getBuffer(void)
@@ -188,7 +218,7 @@ void ESP8266_hardReset(void)
 {
     GPIO_setOutputLowOnPin(RESET_PORT, RESET_PIN);
 
-    __delay_cycles(24000000);
+    __delay_cycles(24000);
 
     GPIO_setOutputHighOnPin(RESET_PORT, RESET_PIN);
 }

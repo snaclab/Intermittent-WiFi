@@ -9,6 +9,7 @@
 #include <stdarg.h>
 
 #include "driverlib.h"
+#include "FreeRTOS.h"
 #include "Tools/dvfs.h"
 #include "Tools/myuart.h"
 
@@ -120,6 +121,8 @@ EUSCI_A_UART_initParam ESP_UART_Config =
    EUSCI_A_UART_MODE,
    EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION
 };
+
+int isTimeSet = 0;
 
 void print2uart(unsigned int UART, char* format,...)
 {

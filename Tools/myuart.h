@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "driverlib.h"
+#include "FreeRTOS.h"
 
 #define UARTA3_BUFFERSIZE  1024
 #define UART_ESP           EUSCI_A3_BASE
