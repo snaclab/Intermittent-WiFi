@@ -28,7 +28,7 @@
 #define AT_CIPSTATUS    "AT+CIPSTATUS\r\n" // check connection status
 #define AT_CIPSTART     "AT+CIPSTART" // establish TCP/UDP/SSL connection
 #define AT_CIPSEND      "AT+CIPSEND" // send data
-#define AT_CIPCLOSE     "AT+CIPCLOSE\r\n" // close connection
+#define AT_CIPCLOSE     "AT+CIPCLOSE" // close connection
 #define AT_CIFSR        "AT+CIFSR\r\n" // look for local IP address
 #define AT_CIPMUX       "AT+CIPMUX" // set multiple conneciton
 #define AT_CIPSERVER    "AT+CIPSTO\r\n" // establish TCP server
@@ -137,6 +137,13 @@ bool ESP8266_connectToAP(char *SSID, char *password)
     return waitForResponse("OK");
 }
 
+bool ESP8266_getConnectStatus(void)
+{
+    print2uart(UART_ESP, AT_CIPSTATUS);
+
+    return waitForResponse("OK");
+}
+
 bool ESP8266_disconnectFromAP(void)
 {
     print2uart(UART_ESP, AT_CWQAP);
@@ -151,7 +158,7 @@ bool ESP8266_setStaticIP(char *IP)
     return waitForResponse("OK");
 }
 
-bool ESP8266_establishConnection(char id, unsigned char type, char *address, char *port)
+bool ESP8266_establishConnection(unsigned char type, char *address, char *port)
 {
     char ct[3];
 
@@ -164,7 +171,14 @@ bool ESP8266_establishConnection(char id, unsigned char type, char *address, cha
             break;
     }
 
-    print2uart(UART_ESP, "%s=%c,\"%s\",\"%s\",%s\r\n", AT_CIPSTART, id, ct, address, port);
+    print2uart(UART_ESP, "%s=\"%s\",\"%s\",%s\r\n", AT_CIPSTART, ct, address, port);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_disconnectServer(char *linkID)
+{
+    print2uart(UART_ESP, "%s=%s\r\n", AT_CIPCLOSE, linkID);
 
     return waitForResponse("OK");
 }
@@ -187,13 +201,11 @@ bool ESP8266_enableMultipleConnecitons(bool enable)
     return waitForResponse("OK");
 }
 
-bool ESP8266_sendData(char id, char *data, unsigned int dataSize)
+bool ESP8266_sendData(char *data, unsigned int dataSize)
 {
-    char size[5];
-    ltoa(dataSize, size);
-    print2uart(UART_ESP, "%s=%c,%s\r\n", AT_CIPSEND, id, size);
+    print2uart(UART_ESP, "%s=%d\r\n", AT_CIPSEND, dataSize);
 
-    if (!waitForResponse("OK")) {
+    if (!waitForResponse(">")) {
         return false;
     }
 

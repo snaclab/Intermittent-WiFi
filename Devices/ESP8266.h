@@ -25,9 +25,11 @@ bool ESP8266_getDHCPStatus(void);
 bool ESP8266_setDHCP(int mode, int en);
 bool ESP8266_connectToAP(char *SSID, char *password);
 bool ESP8266_disconnectFromAP(void);
-bool ESP8266_establishConnection(char id, unsigned char type, char *address, char *port);
+bool ESP8266_establishConnection(unsigned char type, char *address, char *port);
+bool ESP8266_disconnectServer(char *linkID);
+bool ESP8266_getConnectStatus(void);
 bool ESP8266_enableMultipleConnecitons(bool enable);
-bool ESP8266_sendData(char id, char *data, unsigned int dataSize);
+bool ESP8266_sendData(char *data, unsigned int dataSize);
 bool ESP8266_setStaticIP(char *IP);
 bool ESP8266_getIP(void);
 
