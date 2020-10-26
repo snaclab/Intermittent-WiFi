@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include "ESP8266.h"
 #include "FreeRTOS.h"
 #include "driverlib.h"
@@ -37,7 +38,7 @@
 #define AT_CIUPDATE     "AT+CIUPDATE\r\n" // update software through Wi-Fi
 #define IPD             "+IPD\r\n" 
 
-char ESP8266_Buffer[ESP8266_BUFFER_SIZE] = "";
+char ESP8266_Buffer[ESP8266_BUFFER_SIZE];
 const TickType_t timeout = 20000;
 
 void emptyBuffer(void)
@@ -95,7 +96,7 @@ bool ESP8266_changeWiFiMode(unsigned int MODE)
     return waitForResponse("OK");
 }
 
-bool ESP8266_checkConnection(void)
+bool ESP8266_checkModule(void)
 {
     print2uart(UART_ESP, AT);
 
@@ -158,7 +159,7 @@ bool ESP8266_setStaticIP(char *IP)
     return waitForResponse("OK");
 }
 
-bool ESP8266_establishConnection(unsigned char type, char *address, char *port)
+bool ESP8266_establishTCPConnection(unsigned char type, char *address, char *port)
 {
     char ct[3];
 

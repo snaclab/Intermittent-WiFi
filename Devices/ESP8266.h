@@ -1,7 +1,6 @@
 #ifndef DEVICES_ESP8266_H_
 #define DEVICES_ESP8266_H_
 
-#include <string.h>
 #include "FreeRTOS.h"
 
 #include "driverlib.h"
@@ -18,14 +17,14 @@
 
 bool ESP8266_getCurrentWiFiMode(void);
 bool ESP8266_changeWiFiMode(unsigned int MODE);
-bool ESP8266_checkConnection(void);
+bool ESP8266_checkModule(void);
 bool ESP8266_getSystemInfo(void);
 bool ESP8266_availableAPs(void);
 bool ESP8266_getDHCPStatus(void);
 bool ESP8266_setDHCP(int mode, int en);
 bool ESP8266_connectToAP(char *SSID, char *password);
 bool ESP8266_disconnectFromAP(void);
-bool ESP8266_establishConnection(unsigned char type, char *address, char *port);
+bool ESP8266_establishTCPConnection(unsigned char type, char *address, char *port);
 bool ESP8266_disconnectServer(char *linkID);
 bool ESP8266_getConnectStatus(void);
 bool ESP8266_enableMultipleConnecitons(bool enable);

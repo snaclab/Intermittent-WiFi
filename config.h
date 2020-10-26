@@ -13,14 +13,26 @@
 
 #define DEBUGOVERFLOW //take it out for fast recovery
 
-#define NUMTASK   6 //4 user tasks + 2 FreeRTOS tasks
+#define NUMTASK   4 //2 user tasks + 2 FreeRTOS tasks
 #define MAXREAD   8
 
-//Used for demo
+//Task ID
 #define IDIDLE    0
 #define IDTIMER   1
 #define IDMATMUL  2
 #define IDMATH32  3
 #define IDWIFI    4
+
+//WiFi
+// #define AP_SSID         "User"
+// #define AP_PASSWORD     "0975222283"
+// #define STATIC_IP       "192.168.50.23"
+// #define SERVER_IP       "172.20.10.23"
+// #define SERVER_PORT     "9000"
+#define AP_SSID         "LinIPHONE"
+#define AP_PASSWORD     "0978637728"
+#define STATIC_IP       "172.20.10.4"
+#define SERVER_IP       "172.20.10.23"
+#define SERVER_PORT     "9000"
 
 #endif /* CONFIG_H_ */
