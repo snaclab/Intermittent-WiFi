@@ -16,7 +16,7 @@
 #define ATE             "ATE\r\n" // Configures echoing of AT commands
 #define AT_CWMODE       "AT+CWMODE_CUR" // set WiFi mode (STA/AP/STA+AP)
 #define AT_CWMODE_Q     "AT+CWMODE?\r\n" // get current WiFi mode
-#define AT_CWJAP        "AT+CWJAP_CUR" // Connect to AP
+#define AT_CWJAP        "AT+CWJAP" // Connect to AP
 #define AT_CWLAP        "AT+CWLAP\r\n" // List Available APs
 #define AT_CWQAP        "AT+CWQAP\r\n" // Disconnects from AP
 #define AT_CWLIF        "AT+CWLIF\r\n" // get info SoftAP station from connected ESP8266
@@ -36,6 +36,7 @@
 #define AT_CIPMODE      "AT+CIPMODE\r\n" // set connection mode
 #define AT_CIPSTO       "AT+CIPSTO\r\n" // set TCP server timeout 
 #define AT_CIUPDATE     "AT+CIUPDATE\r\n" // update software through Wi-Fi
+#define AT_PING         "AT+PING" // ping website
 #define IPD             "+IPD\r\n" 
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE];
@@ -157,6 +158,13 @@ bool ESP8266_setStaticIP(char *IP)
     print2uart(UART_ESP, "%s=\"%s\"\r\n", AT_CIPSTA, IP);
 
     return waitForResponse("OK");
+}
+
+void ESP8266_ping(char *url)
+{
+    print2uart(UART_ESP, "%s=\"%s\"\r\n", AT_PING, url);
+    waitForResponse("+");
+    return;
 }
 
 bool ESP8266_establishTCPConnection(unsigned char type, char *address, char *port)

@@ -23,6 +23,7 @@ bool ESP8266_availableAPs(void);
 bool ESP8266_getDHCPStatus(void);
 bool ESP8266_setDHCP(int mode, int en);
 bool ESP8266_connectToAP(char *SSID, char *password);
+void ESP8266_ping(char *url);
 bool ESP8266_disconnectFromAP(void);
 bool ESP8266_establishTCPConnection(unsigned char type, char *address, char *port);
 bool ESP8266_disconnectServer(char *linkID);

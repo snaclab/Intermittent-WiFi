@@ -14,81 +14,92 @@
 #include "wifi.h"
 #include "data.h"
 
-extern char *squirtle_ptr, *charmander_ptr, *bulbasaur_ptr;
-char data[2048];
+extern const char *squirtle_ptr;
 
-const int Tries = 5;
+#pragma NOINIT(data)
+char data[DATA_SIZE];
 
-char images[3][10] = {
-        "squirtle",
-        "charmander",
-        "bulbasaur"
-    };
+char *data_ptr = data;
 
-void communicate(void);
+#pragma NOINIT(requestBody)
+char requestBody[REQUEST_SIZE];
+
+void wifiCommunicate(void);
 
 void wifi(void)
 {
-    xTaskCreate(communicate, "communicate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDWIFI, INVM);
+    xTaskCreate(wifiCommunicate, "wifiCommunicate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDWIFI, INVM);
 }
 
-void communicate(void)
+void wifiCommunicate(void)
 {
     registerTCB(IDWIFI);
 
+    const int Tries = 5;
     char endpoint[] = "/post";
-    int tries = Tries;
     char *ESP_Data = ESP8266_getBuffer();
 
-    if (!checkModule(tries)) {
+    if (!initConnectModule(Tries)) {
         dprint2uart(UART_STDOUT, "Fail to communicate with module.\r\n");
         goto END;
     }
 
-    if (!checkConnection(tries)) {
-        if (!establishWiFiConnection()) {
+    dprint2uart(UART_STDOUT, "Pass Module UART check\r\n");
+
+    if (!checkConnection(Tries)) {
+        if (!establishWiFiConnection(Tries)) {
             dprint2uart(UART_STDOUT,
-                        "Fail to establish WiFi connection.\r\n");
+                        "Fail to establish WiFi connection with response:\r\n%s\r\n", ESP_Data);
             goto END;
         }
     }
 
-    while (true) {
-        registerTCB(IDWIFI);
+    dprint2uart(UART_STDOUT, "WiFi connected\r\n");
 
-        srand(3);
-        int x = rand();
+    ESP8266_ping("www.google.com");
 
-        constructData(x, data);
+    dprint2uart(UART_STDOUT, "PING:\r\n%s\r\n", ESP_Data);
+
+    constructData(data);
+    unsigned int requestLength = constructPOSTRequest(endpoint, data, requestBody);
+
+    dprint2uart(UART_STDOUT, "request:\r\n%s\r\n", requestBody);
+
+    int count = 50;
+    while (count) {
+        int tries = Tries;
+
+        dprint2uart(UART_STDOUT, "data length: %d\r\n", strlen(data));
+        dprint2uart(UART_STDOUT, "Request length: %d\r\n", strlen(requestBody));
 
         const TickType_t sleepTime = 1000;
 
         while (tries) {
-            if (sendTCP(endpoint, data)) {
+            if (sendTCP(requestBody, requestLength)) {
                 break;
             }
             dprint2uart(UART_STDOUT, "Fail to send TCP data\r\n");
             tries--;
         }
-
-        unregisterTCB(IDWIFI);
         // sleep for 1 sec
         TickType_t startTime = xTaskGetTickCount();
         while (xTaskGetTickCount() - startTime < sleepTime) {
             __delay_cycles(2400);
         }
+        count--;
     }
 
 END:
     ESP8266_disconnectFromAP();
     dprint2uart(UART_STDOUT, "At the end \r\n");
+    unregisterTCB(IDWIFI);
     return;
 }
 
-bool establishWiFiConnection(int Tries)
+bool establishWiFiConnection(int tries)
 {
     char *ESP_Data = ESP8266_getBuffer();
-    while (Tries) {
+    while (tries) {
         if (!ESP8266_connectToAP(AP_SSID, AP_PASSWORD)) {
             dprint2uart(UART_STDOUT,
                     "Fail to connect to AP with response:\r\n%s\r\n", ESP_Data);
@@ -99,50 +110,53 @@ bool establishWiFiConnection(int Tries)
             continue;
         }
 
-        if (strstr(ESP_Data, STATIC_IP) != NULL) {
+        if (strstr(ESP_Data, "192.168") != NULL) {
             return true;
         }
-        Tries--;
+        tries--;
     }
 
     return false;
 }
 
-bool checkConnection(int Tries)
+bool checkConnection(int tries)
 {
     char *ESP_Data = ESP8266_getBuffer();
-    while (Tries) {
+    while (tries) {
         if (ESP8266_getIP()) {
             break;
         }
         dprint2uart(UART_STDOUT, "Fail to get IP \r\n");
-        Tries--;
+        tries--;
     }
 
-    if (strstr(ESP_Data, STATIC_IP) != NULL) {
+    if (strstr(ESP_Data, "172.20") != NULL) {
+        dprint2uart(UART_STDOUT, "ESP_DATA:\r\n%s\r\n", ESP_Data);
         return true;
     }
 
     return false;
 }
 
-bool sendTCP(char *endPoint, char *data)
+bool sendTCP(char *requestBody, unsigned int requestLength)
 {
     bool isSuccess = false;
-    char requestBody[512];
     char *ESP_Data = ESP8266_getBuffer();
-    unsigned int requestLength = constructPOSTRequest(endPoint, data, requestBody);
 
     if (!ESP8266_establishTCPConnection(TCP, SERVER_IP, SERVER_PORT)) {
         dprint2uart(UART_STDOUT,
                     "Fail to establish connection to AP with response:\r\n%s\r\n", ESP_Data);
     }
 
+    dprint2uart(UART_STDOUT, "TCP Connected:\r\n%s\r\n", ESP_Data);
+
     if (!ESP8266_sendData(requestBody, requestLength)) {
         dprint2uart(UART_STDOUT,
                     "Fail to send data to remote with response:\r\n%s\r\n", ESP_Data);
         goto END;
     }
+
+    dprint2uart(UART_STDOUT, "TCP Sent:\r\n%s\r\n", ESP_Data);
 
     isSuccess = true;
 
@@ -151,58 +165,55 @@ END:
     return isSuccess;
 }
 
-bool initConnectModule(void)
+bool initConnectModule(int tries)
 {
-    char* ESP_Data = ESP8266_getBuffer();
     // Init UART Interface
     uartInit(UART_ESP);
     uartBufferFlush();
 
     // Hard reset ESP8266
-    ESP8266_hardReset();
+    //ESP8266_hardReset();
 
-    if (!checkModule()) {
+    if (!checkModule(tries)) {
         return false;
     }
 
     return true;
 }
 
-bool checkModule(int Tries)
+bool checkModule(int tries)
 {
-    while (Tries) {
+    while (tries) {
         if (ESP8266_checkModule()) {
             return true;
         }
-        Tries--;
+        tries--;
     }
     return false;
 }
 
 unsigned int constructPOSTRequest(char *endPoint, char *data, char *requestBody)
 {
-    int dataSize = strlen(data);
-
+    int16_t dataSize = strlen(data);
+    dprint2uart(UART_STDOUT, "dataSize: %d\r\n", dataSize);
+    dprint2uart(UART_STDOUT, "begin construct Post\r\n");
     sprintf(requestBody,
             "POST %s HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s\r\n\r\n\0",
             endPoint,
             dataSize,
-            data);
+            data_ptr);
 
+    dprint2uart(UART_STDOUT, "pass sprintf request body\r\n");
     return strlen(requestBody);
 }
 
-void constructData(int img, char *data)
+void constructData(char *data)
 {
-    char *image_data[3] = {
-        squirtle_ptr,
-        charmander_ptr,
-        bulbasaur_ptr
-    };
     sprintf(data,
             "{\"message\": \"%s\", \"image\": \"%s\"}\0",
-            images[img],
-            image_data[img]);
+            "abcc",
+            "avbas");
 
+    dprint2uart(UART_STDOUT, "pass construct data\r\n");
     return;
 }

@@ -2,6 +2,8 @@
  *  main.h
  *
  */
+
+#include "Tools/myuart.h"
 //Heap allocation
 #pragma NOINIT(ucHeap)
 uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
@@ -49,6 +51,8 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 {
     ( void ) pcTaskName;
     ( void ) pxTask;
+
+    dprint2uart(UART_STDOUT, "overflow task: %s\r\n", pcTaskName);
 
     /* Force an assert. */
     configASSERT( ( volatile void * ) NULL );
