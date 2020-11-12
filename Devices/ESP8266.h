@@ -23,7 +23,6 @@ bool ESP8266_availableAPs(void);
 bool ESP8266_getDHCPStatus(void);
 bool ESP8266_setDHCP(int mode, int en);
 bool ESP8266_connectToAP(char *SSID, char *password);
-void ESP8266_ping(char *url);
 bool ESP8266_disconnectFromAP(void);
 bool ESP8266_establishTCPConnection(unsigned char type, char *address, char *port);
 bool ESP8266_disconnectServer(char *linkID);
@@ -32,8 +31,12 @@ bool ESP8266_enableMultipleConnecitons(bool enable);
 bool ESP8266_sendData(char *data, unsigned int dataSize);
 bool ESP8266_setStaticIP(char *IP);
 bool ESP8266_getIP(void);
+bool ESP8266_setMQTTUserConf(int scheme, char *clientID, char *username, char *passwd, char *path);
+bool ESP8266_connectToMQTTBroker(char *serverIP, int port, int reconnect);
+bool ESP8266_publishMessage(char *topic, char *data, int qos, int retain);
 
 void ESP8266_hardReset(void);
+void ESP8266_ping(char *url);
 
 char *ESP8266_getBuffer(void);
 
