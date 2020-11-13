@@ -32,6 +32,8 @@ bool ESP8266_enableMultipleConnecitons(bool enable);
 bool ESP8266_sendData(char *data, unsigned int dataSize);
 bool ESP8266_setStaticIP(char *IP);
 bool ESP8266_getIP(void);
+bool ESP8266_getRFPower(void);
+bool ESP8266_setRFPower(int dbm);
 
 void ESP8266_hardReset(void);
 

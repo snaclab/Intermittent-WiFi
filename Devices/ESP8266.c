@@ -14,17 +14,14 @@
 #define AT_GMR          "AT+GMR\r\n" // Check version information
 #define AT_GSLP         "AT+GSLP\r\n" // Enter Deep-sleep mode
 #define ATE             "ATE\r\n" // Configures echoing of AT commands
-#define AT_CWMODE       "AT+CWMODE_CUR" // set WiFi mode (STA/AP/STA+AP)
+#define AT_CWMODE       "AT+CWMODE" // set WiFi mode (STA/AP/STA+AP)
 #define AT_CWMODE_Q     "AT+CWMODE?\r\n" // get current WiFi mode
 #define AT_CWJAP        "AT+CWJAP" // Connect to AP
 #define AT_CWLAP        "AT+CWLAP\r\n" // List Available APs
 #define AT_CWQAP        "AT+CWQAP\r\n" // Disconnects from AP
-#define AT_CWLIF        "AT+CWLIF\r\n" // get info SoftAP station from connected ESP8266
-#define AT_CWDHCP       "AT+CWDHCP_CUR" // set DHCP
-#define AT_CWDHCP_Q     "AT+CWDHCP_CUR?\r\n" // get DHCP status
-#define AT_CIPSTAMAC    "AT+CIPSTAMAC\r\n" // set station MAC address
-#define AT_CIPAPMAC     "AT+CIPAPMAC\r\n" // set AP MAC address
-#define AT_CIPSTA       "AT+CIPSTA_CUR" // set STA IP address
+#define AT_CWDHCP       "AT+CWDHCP" // set DHCP
+#define AT_CWDHCP_Q     "AT+CWDHCP?\r\n" // get DHCP status
+#define AT_CIPSTA       "AT+CIPSTA" // set STA IP address
 #define AT_CIPAP        "AT+CIPAP" // set AP IP address
 #define AT_CIPSTATUS    "AT+CIPSTATUS\r\n" // check connection status
 #define AT_CIPSTART     "AT+CIPSTART" // establish TCP/UDP/SSL connection
@@ -32,12 +29,12 @@
 #define AT_CIPCLOSE     "AT+CIPCLOSE" // close connection
 #define AT_CIFSR        "AT+CIFSR\r\n" // look for local IP address
 #define AT_CIPMUX       "AT+CIPMUX" // set multiple conneciton
-#define AT_CIPSERVER    "AT+CIPSTO\r\n" // establish TCP server
-#define AT_CIPMODE      "AT+CIPMODE\r\n" // set connection mode
-#define AT_CIPSTO       "AT+CIPSTO\r\n" // set TCP server timeout 
+#define AT_CIPMODE      "AT+CIPMODE\r\n" // set connection mode 
 #define AT_CIUPDATE     "AT+CIUPDATE\r\n" // update software through Wi-Fi
+#define AT_HTTP         "AT+HTTPCLIENT" // send http request
 #define AT_PING         "AT+PING" // ping website
-#define IPD             "+IPD\r\n" 
+#define AT_RFPOWER_Q    "AT+RFPOWER?\r\n" // get RF power
+#define AT_RFPOWER      "AT+RFPOWER" // set RF power
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE];
 const TickType_t timeout = 20000;
@@ -219,6 +216,20 @@ bool ESP8266_sendData(char *data, unsigned int dataSize)
     }
 
     print2uart(UART_ESP, data);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getRFPower(void)
+{
+    print2uart(UART_ESP, "%s\r\n", AT_RFPOWER_Q);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_setRFPower(int dbm)
+{
+    print2uart(UART_ESP, "%s=%d\r\n", AT_RFPOWER, dbm);
 
     return waitForResponse("OK");
 }
