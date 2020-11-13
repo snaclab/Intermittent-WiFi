@@ -14,12 +14,11 @@
 #define AT_GMR            "AT+GMR\r\n" // Check version information
 #define AT_GSLP           "AT+GSLP\r\n" // Enter Deep-sleep mode
 #define AT_CWMODE         "AT+CWMODE" // set WiFi mode (STA/AP/STA+AP)
-#define AT_CWMODE_Q       "AT+CWMODE?\r\n" // get current WiFi mode
 #define AT_CWJAP          "AT+CWJAP" // Connect to AP
 #define AT_CWLAP          "AT+CWLAP\r\n" // List Available APs
 #define AT_CWQAP          "AT+CWQAP\r\n" // Disconnects from AP
 #define AT_CWDHCP         "AT+CWDHCP" // set DHCP
-#define AT_CWDHCP_Q       "AT+CWDHCP?\r\n" // get DHCP status
+#define AT_SYSLOG         "AT+SYSLOG" // set syslog
 #define AT_CIPSTA         "AT+CIPSTA" // set STA IP address
 #define AT_CIPAP          "AT+CIPAP" // set AP IP address
 #define AT_CIPSTATUS      "AT+CIPSTATUS\r\n" // check connection status
@@ -32,8 +31,7 @@
 #define AT_MQTTCONN       "AT+MQTTCONN" // connect to MQTT broker
 #define AT_MQTTPUB        "AT+MQTTPUB" // publish MQTT message
 #define AT_MQTTCLEAN      "AT+MQTTCLEAN" // close MQTT connection
-#define AT_RFPOWER_Q    "AT+RFPOWER?\r\n" // get RF power
-#define AT_RFPOWER      "AT+RFPOWER" // set RF power
+#define AT_RFPOWER        "AT+RFPOWER" // set RF power
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE];
 const TickType_t timeout = 20000;
@@ -74,7 +72,7 @@ bool waitForResponse(char *target)
 
 bool ESP8266_getCurrentWiFiMode(void)
 {
-    print2uart(UART_ESP, AT_CWMODE_Q);
+    print2uart(UART_ESP, "%s?\r\n", AT_CWMODE);
 
     return waitForResponse("OK");
 }
@@ -114,9 +112,23 @@ bool ESP8266_availableAPs(void)
     return waitForResponse("OK");
 }
 
+bool ESP8266_enableSysLog(void)
+{
+    print2uart(UART_ESP, "%s=1\r\n", AT_SYSLOG);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getSysLog(void)
+{
+    print2uart(UART_ESP, "%s?\r\n", AT_SYSLOG);
+
+    return waitForResponse("OK");
+}
+
 bool ESP8266_getDHCPStatus(void)
 {
-    print2uart(UART_ESP, AT_CWDHCP_Q);
+    print2uart(UART_ESP, "%s?\r\n", AT_CWDHCP);
 
     return waitForResponse("OK");
 }
@@ -128,10 +140,17 @@ bool ESP8266_setDHCP(int mode, int en)
     return waitForResponse("OK");
 }
 
-bool ESP8266_connectToAP(char *SSID, char *password)
+bool ESP8266_connectToAP(char *SSID, char *password, int reconn)
 {
-    print2uart(UART_ESP, "%s=\"%s\",\"%s\"\r\n", AT_CWJAP, SSID, password);
+    print2uart(UART_ESP, "%s=\"%s\",\"%s\",,,%d,,\r\n", AT_CWJAP, SSID, password, reconn);
     
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getAPConnectStatus(void)
+{
+    print2uart(UART_ESP, "%s?\r\n", AT_CWJAP);
+
     return waitForResponse("OK");
 }
 
@@ -154,13 +173,6 @@ bool ESP8266_setStaticIP(char *IP)
     print2uart(UART_ESP, "%s=\"%s\"\r\n", AT_CIPSTA, IP);
 
     return waitForResponse("OK");
-}
-
-void ESP8266_ping(char *url)
-{
-    print2uart(UART_ESP, "%s=\"%s\"\r\n", AT_PING, url);
-    waitForResponse("+");
-    return;
 }
 
 bool ESP8266_establishTCPConnection(unsigned char type, char *address, char *port)
@@ -188,24 +200,6 @@ bool ESP8266_disconnectServer(char *linkID)
     return waitForResponse("OK");
 }
 
-bool ESP8266_enableMultipleConnecitons(bool enable)
-{
-    char c;
-
-    switch (enable) {
-        case 0:
-            c = '0';
-            break;
-        case 1:
-            c = '1';
-            break;
-    }
-
-    print2uart(UART_ESP, "%s=%c\r\n", AT_CIPMUX, c);
-
-    return waitForResponse("OK");
-}
-
 bool ESP8266_sendData(char *data, unsigned int dataSize)
 {
     print2uart(UART_ESP, "%s=%d\r\n", AT_CIPSEND, dataSize);
@@ -221,7 +215,7 @@ bool ESP8266_sendData(char *data, unsigned int dataSize)
 
 bool ESP8266_getRFPower(void)
 {
-    print2uart(UART_ESP, "%s\r\n", AT_RFPOWER_Q);
+    print2uart(UART_ESP, "%s?\r\n", AT_RFPOWER);
 
     return waitForResponse("OK");
 }
@@ -229,6 +223,48 @@ bool ESP8266_getRFPower(void)
 bool ESP8266_setRFPower(int dbm)
 {
     print2uart(UART_ESP, "%s=%d\r\n", AT_RFPOWER, dbm);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_setMQTTUserConf(int scheme, char *clientID, char *username, char *passwd, char *path)
+{
+    print2uart(UART_ESP, "%s=0,%d,\"%s\",\"%s\",\"%s\",0,0,\"%s\"\r\n", AT_MQTTUSERCFG, scheme, clientID, username, passwd, path);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getMQTTUserConf(void)
+{
+    print2uart(UART_ESP, "%s?\r\n", AT_MQTTUSERCFG);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_connectToMQTTBroker(char *serverIP, int port, int reconnect)
+{
+    print2uart(UART_ESP, "%s=0,\"%s\",%d,%d\r\n", AT_MQTTCONN, serverIP, port, reconnect);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getMQTTConnectStatus(void)
+{
+    print2uart(UART_ESP, "%s?\r\n", AT_MQTTCONN);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_publishMessage(char *topic, char *data, int qos, int retain)
+{
+    print2uart(UART_ESP, "%s=0,\"%s\",\"%s\",%d,%d\r\n", AT_MQTTPUB, topic, data, qos, retain);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_MQTTClean(void)
+{
+    print2uart(UART_ESP, "%s=0\r\n", AT_MQTTCLEAN);
 
     return waitForResponse("OK");
 }

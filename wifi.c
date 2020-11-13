@@ -16,13 +16,12 @@
 
 extern const char *squirtle_ptr;
 
-#pragma NOINIT(data)
-char data[DATA_SIZE];
+int RF_POWER = 78;
+int Tries = 5;
 
-char *data_ptr = data;
+char message[] = "jlseijlefsfffffseselbsesfjlsefselivslmsiemsleimsleifmsliseaqqsebsdrbsdnfsefbhluijeflsiefj";
 
-#pragma NOINIT(requestBody)
-char requestBody[REQUEST_SIZE];
+TickType_t sleepTime = 3000;
 
 void wifiCommunicate(void);
 
@@ -35,8 +34,6 @@ void wifiCommunicate(void)
 {
     registerTCB(IDWIFI);
 
-    const int Tries = 5;
-    char endpoint[] = "/post";
     char *ESP_Data = ESP8266_getBuffer();
 
     if (!initConnectModule(Tries)) {
@@ -54,39 +51,53 @@ void wifiCommunicate(void)
         }
     }
 
-    dprint2uart(UART_STDOUT, "WiFi connected\r\n");
+    if (!ESP8266_getAPConnectStatus()) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to get Wifi Connection with resposne:\r\n%s\r\n", ESP_Data);
+    }
 
-    ESP8266_ping("www.google.com");
+    dprint2uart(UART_STDOUT,
+                "Connection Status:\r\n%s\r\n", ESP_Data);
 
-    dprint2uart(UART_STDOUT, "PING:\r\n%s\r\n", ESP_Data);
+    // if (!ESP8266_setRFPower(RF_POWER)) {
+    //     dprint2uart(UART_STDOUT,
+    //                 "Fail to set RF power with response:\r\n%s\r\n", ESP_Data);
+    // }
 
-    constructData(data);
-    unsigned int requestLength = constructPOSTRequest(endpoint, data, requestBody);
+    // if (!ESP8266_getRFPower()) {
+    //     dprint2uart(UART_STDOUT,
+    //                 "Fail to get RF power with response:\r\n%s\r\n", ESP_Data);
+    // }
 
-    dprint2uart(UART_STDOUT, "request:\r\n%s\r\n", requestBody);
+    // dprint2uart(UART_STDOUT, "%s\r\n", ESP_Data);
 
-    int count = 50;
+    int count = 20;
     while (count) {
-        int tries = Tries;
-
-        dprint2uart(UART_STDOUT, "data length: %d\r\n", strlen(data));
-        dprint2uart(UART_STDOUT, "Request length: %d\r\n", strlen(requestBody));
-
-        const TickType_t sleepTime = 1000;
-
-        while (tries) {
-            if (sendTCP(requestBody, requestLength)) {
-                break;
+        count--;
+        if (!checkMQTTConnection()) {
+            if (!connectToBroker()) {
+                dprint2uart(UART_STDOUT,
+                            "Fail to connect to MQTT broker\r\n");
+                if (!checkConnection(Tries)) {
+                    dprint2uart(UART_STDOUT, "WiFi disconnected again!!!!!\r\n");
+                    break;
+                }
+                continue;
             }
-            dprint2uart(UART_STDOUT, "Fail to send TCP data\r\n");
-            tries--;
         }
-        // sleep for 1 sec
-        TickType_t startTime = xTaskGetTickCount();
-        while (xTaskGetTickCount() - startTime < sleepTime) {
+
+        if (!sendMQTTData(message)) {
+            dprint2uart(UART_STDOUT,
+                        "Fail to send MQTT data\r\n");
+            continue;
+        }
+
+        dprint2uart(UART_STDOUT, "Send MQTT sucessfully\r\n");
+
+        TickType_t starTime = xTaskGetTickCount();
+        while (xTaskGetTickCount() - starTime < sleepTime) {
             __delay_cycles(2400);
         }
-        count--;
     }
 
 END:
@@ -100,7 +111,7 @@ bool establishWiFiConnection(int tries)
 {
     char *ESP_Data = ESP8266_getBuffer();
     while (tries) {
-        if (!ESP8266_connectToAP(AP_SSID, AP_PASSWORD)) {
+        if (!ESP8266_connectToAP(AP_SSID, AP_PASSWORD, 1)) {
             dprint2uart(UART_STDOUT,
                     "Fail to connect to AP with response:\r\n%s\r\n", ESP_Data);
         }
@@ -130,8 +141,7 @@ bool checkConnection(int tries)
         tries--;
     }
 
-    if (strstr(ESP_Data, "172.20") != NULL) {
-        dprint2uart(UART_STDOUT, "ESP_DATA:\r\n%s\r\n", ESP_Data);
+    if (strstr(ESP_Data, "192.168") != NULL) {
         return true;
     }
 
@@ -161,8 +171,86 @@ bool sendTCP(char *requestBody, unsigned int requestLength)
     isSuccess = true;
 
 END:
-    ESP8266_disconnectServer("0");
+    ESP8266_disconnectServer("5");
     return isSuccess;
+}
+
+bool checkMQTTClientConfig(void)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+    if (!ESP8266_getMQTTUserConf()) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to get MQTT user config with response:\r\n%s\r\n", ESP_Data);
+    }
+
+    if (strstr(ESP_Data, MQTT_CLIENT_ID) != NULL) {
+        return true;
+    }
+    return false;
+}
+
+bool setupMQTTClientConfig(void)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+    if (!ESP8266_setMQTTUserConf(MQTT_SCHEME, MQTT_CLIENT_ID, "", "", "")) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to setup MQTT user config with response:\r\n%s\r\n", ESP_Data);
+    }
+
+    if (!checkMQTTClientConfig()) {
+        dprint2uart(UART_STDOUT,
+                    "MQTT Config setup unsuccessful\r\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool connectToBroker(void)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+
+    dprint2uart(UART_STDOUT, "Going to Connect to Broker\r\n");
+
+    if (!checkMQTTClientConfig()) {
+        if (!setupMQTTClientConfig()) {
+            dprint2uart(UART_STDOUT,
+                        "Fail to setup MQTT Config\r\n");
+            return false;
+        }
+    }
+
+    if (!ESP8266_connectToMQTTBroker(SERVER_IP, MQTT_PORT, 0)) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to connect to MQTT broker with response:\r\n%s\r\n", ESP_Data);
+        return false;
+    }
+
+    return true;
+}
+
+bool checkMQTTConnection(void)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+    if (!ESP8266_getMQTTConnectStatus()) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to get MQTT Connection Status with response:\r\n%s\r\n", ESP_Data);
+    }
+    if (strstr(ESP_Data, SERVER_IP) != NULL) {
+        return true;
+    }
+    return false;
+}
+
+bool sendMQTTData(char *data)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+    if (!ESP8266_publishMessage(MQTT_TOPIC, data, 0, 0)) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to publish MQTT message with response:\r\n%s\r\n", ESP_Data);
+        return false;
+    }
+    return true;
 }
 
 bool initConnectModule(int tries)
@@ -172,10 +260,16 @@ bool initConnectModule(int tries)
     uartBufferFlush();
 
     // Hard reset ESP8266
-    //ESP8266_hardReset();
+    // ESP8266_hardReset();
+
+    __delay_cycles(24000);
 
     if (!checkModule(tries)) {
-        return false;
+        ESP8266_hardReset();
+        dprint2uart(UART_STDOUT, "Reset ESP8266\r\n");
+        if (!checkModule(tries)) {
+            return false;
+        }
     }
 
     return true;
@@ -183,6 +277,7 @@ bool initConnectModule(int tries)
 
 bool checkModule(int tries)
 {
+    char *ESP_Data = ESP8266_getBuffer();
     while (tries) {
         if (ESP8266_checkModule()) {
             return true;
@@ -195,13 +290,13 @@ bool checkModule(int tries)
 unsigned int constructPOSTRequest(char *endPoint, char *data, char *requestBody)
 {
     int16_t dataSize = strlen(data);
-    dprint2uart(UART_STDOUT, "dataSize: %d\r\n", dataSize);
-    dprint2uart(UART_STDOUT, "begin construct Post\r\n");
-    sprintf(requestBody,
+    // requestBody = "POST /post HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: 48\r\n\r\n{\"message\": \"hello world\", \"content\": \"abcabc\"}\r\n\r\n\0";
+    // requestBody = "POST /post HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: 648\r\n\r\n{\"message\": \"hello world\", \"content\": \"sdj;asliebjdurghdurghdkgsdgsdlhrgsdhr gsdrjsdl;jbsdlirjsrilbjsrlijsdgsdjilrgsijdrl;nsdijbsdl;rigjsd;lijsd;rlisjdrl;nirjl;gsdrjgsd;gjsd;lrifjsl;rfjisd;flbisdjl;bsjir;blfj'aesgjisdl;rbjisd;lsdjlri;hsjdrlgsdrglsdjrglisdjsl;dirjnsdrigshdlrgjsdrl;gisjdblsdirjbs;dlrigjsdl;rigjsdrl;gisdjr;lsdbjILELSijslefjas;elgjialeirjasleifj;eiljfiljfasuhgughuerfhai;efsjJ:LIEJ:ILJIEHFGSEFUH:faeafsleivjbl;aeifjas;leifjasl;ibjasel;fijskfhrukgsdhgushurhsrguidhr89348tyghjaslekf;asebhaksuehf;egasefkljhgsdkgjsl;rgkjdltuhgisejrg;i5jg4e5i8gj;ijs;lrijdbfl;tmnidftl;hndf'gdrjg;dlritjg;\"}\r\n\r\n\0"
+    /*sprintf(requestBody,
             "POST %s HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s\r\n\r\n\0",
             endPoint,
             dataSize,
-            data_ptr);
+            data_ptr);*/
 
     dprint2uart(UART_STDOUT, "pass sprintf request body\r\n");
     return strlen(requestBody);

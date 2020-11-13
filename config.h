@@ -29,10 +29,20 @@
 // #define STATIC_IP       "192.168.50.23"
 // #define SERVER_IP       "192.168.50.2"
 // #define SERVER_PORT     "9000"
-#define AP_SSID         "CITI_Guest"
-#define AP_PASSWORD     ""
-#define STATIC_IP       "172.20.10.23"
-#define SERVER_IP       "192.168.49.135"
-#define SERVER_PORT     "9000"
+#define AP_SSID            "CITI_Guest"
+#define AP_PASSWORD        ""
+// #define STATIC_IP          "172.20.10.23"
+#define SERVER_IP          "192.168.49.50"
+// #define SERVER_IP          "172.20.10.2"
+#define SERVER_PORT        "9000"
+
+// MQTT config
+#define MQTT_CLIENT_ID     "ESP8266"
+#define MQTT_TOPIC         "ESP"
+#define MQTT_SCHEME        1 // 1 for connect MQTT through TCP
+#define MQTT_PORT          1883
+#define MQTT_RECONNECT     0 // 0: MQTT will not auto-reconnect, 1: MQTT will auto-reconnect
+#define MQTT_QOS           1 // could be 0, 1, and 2, default is 0
+#define MQTT_RETAIN        0 // Retain flag
 
 #endif /* CONFIG_H_ */
