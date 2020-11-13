@@ -9,30 +9,29 @@
 #define RESET_PIN       GPIO_PIN4
 #define RESET_PORT      GPIO_PORT_P3
 
-#define AT              "AT\r\n"  // Test AT starup
-#define AT_RST          "AT+RST\r\n" // Restarts the module (soft reset)
-#define AT_GMR          "AT+GMR\r\n" // Check version information
-#define AT_GSLP         "AT+GSLP\r\n" // Enter Deep-sleep mode
-#define ATE             "ATE\r\n" // Configures echoing of AT commands
-#define AT_CWMODE       "AT+CWMODE" // set WiFi mode (STA/AP/STA+AP)
-#define AT_CWMODE_Q     "AT+CWMODE?\r\n" // get current WiFi mode
-#define AT_CWJAP        "AT+CWJAP" // Connect to AP
-#define AT_CWLAP        "AT+CWLAP\r\n" // List Available APs
-#define AT_CWQAP        "AT+CWQAP\r\n" // Disconnects from AP
-#define AT_CWDHCP       "AT+CWDHCP" // set DHCP
-#define AT_CWDHCP_Q     "AT+CWDHCP?\r\n" // get DHCP status
-#define AT_CIPSTA       "AT+CIPSTA" // set STA IP address
-#define AT_CIPAP        "AT+CIPAP" // set AP IP address
-#define AT_CIPSTATUS    "AT+CIPSTATUS\r\n" // check connection status
-#define AT_CIPSTART     "AT+CIPSTART" // establish TCP/UDP/SSL connection
-#define AT_CIPSEND      "AT+CIPSEND" // send data
-#define AT_CIPCLOSE     "AT+CIPCLOSE" // close connection
-#define AT_CIFSR        "AT+CIFSR\r\n" // look for local IP address
-#define AT_CIPMUX       "AT+CIPMUX" // set multiple conneciton
-#define AT_CIPMODE      "AT+CIPMODE\r\n" // set connection mode 
-#define AT_CIUPDATE     "AT+CIUPDATE\r\n" // update software through Wi-Fi
-#define AT_HTTP         "AT+HTTPCLIENT" // send http request
-#define AT_PING         "AT+PING" // ping website
+#define AT                "AT\r\n"  // Test AT starup
+#define AT_RST            "AT+RST\r\n" // Restarts the module (soft reset)
+#define AT_GMR            "AT+GMR\r\n" // Check version information
+#define AT_GSLP           "AT+GSLP\r\n" // Enter Deep-sleep mode
+#define AT_CWMODE         "AT+CWMODE" // set WiFi mode (STA/AP/STA+AP)
+#define AT_CWMODE_Q       "AT+CWMODE?\r\n" // get current WiFi mode
+#define AT_CWJAP          "AT+CWJAP" // Connect to AP
+#define AT_CWLAP          "AT+CWLAP\r\n" // List Available APs
+#define AT_CWQAP          "AT+CWQAP\r\n" // Disconnects from AP
+#define AT_CWDHCP         "AT+CWDHCP" // set DHCP
+#define AT_CWDHCP_Q       "AT+CWDHCP?\r\n" // get DHCP status
+#define AT_CIPSTA         "AT+CIPSTA" // set STA IP address
+#define AT_CIPAP          "AT+CIPAP" // set AP IP address
+#define AT_CIPSTATUS      "AT+CIPSTATUS\r\n" // check connection status
+#define AT_CIPSTART       "AT+CIPSTART" // establish TCP/UDP/SSL connection
+#define AT_CIPSEND        "AT+CIPSEND" // send data
+#define AT_CIPCLOSE       "AT+CIPCLOSE" // close connection
+#define AT_CIFSR          "AT+CIFSR\r\n" // look for local IP address
+#define AT_CIPMODE        "AT+CIPMODE\r\n" // set connection mode
+#define AT_MQTTUSERCFG    "AT+MQTTUSERCFG" // set MQTT user config
+#define AT_MQTTCONN       "AT+MQTTCONN" // connect to MQTT broker
+#define AT_MQTTPUB        "AT+MQTTPUB" // publish MQTT message
+#define AT_MQTTCLEAN      "AT+MQTTCLEAN" // close MQTT connection
 #define AT_RFPOWER_Q    "AT+RFPOWER?\r\n" // get RF power
 #define AT_RFPOWER      "AT+RFPOWER" // set RF power
 
@@ -52,7 +51,7 @@ bool waitForResponse(char *target)
     emptyBuffer();
 
     TickType_t startTime = xTaskGetTickCount();
-    
+
     while(xTaskGetTickCount() - startTime < timeout) {
         while (uartA3GotMessage()) {
             c = readFromUartA3();
