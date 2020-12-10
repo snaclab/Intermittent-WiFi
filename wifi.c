@@ -71,7 +71,7 @@ void wifiCommunicate(void)
 
     // dprint2uart(UART_STDOUT, "%s\r\n", ESP_Data);
 
-    int count = 20;
+    /* int count = 20;
     while (count) {
         count--;
         if (!checkMQTTConnection()) {
@@ -98,7 +98,7 @@ void wifiCommunicate(void)
         while (xTaskGetTickCount() - starTime < sleepTime) {
             __delay_cycles(2400);
         }
-    }
+    }*/
 
 END:
     ESP8266_disconnectFromAP();
