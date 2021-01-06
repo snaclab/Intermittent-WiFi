@@ -105,10 +105,10 @@ int main( void )
 	    //create application tasks here
 	    //demo();
 
-		ledOn(true);
+		// ledOn(true);
 
 		// create wifi
-		// wifi();
+		wifi();
 
 		// ledOn(false);
 

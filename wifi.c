@@ -15,11 +15,13 @@
 #include "data.h"
 
 extern const char *squirtle_ptr;
+extern int DID0;
 
 int RF_POWER = 78;
 int Tries = 5;
 
-char message[] = "jlseijlefsfffffseselbsesfjlsefselivslmsiemsleimsleifmsliseaqqsebsdrbsdnfsefbhluijeflsiefj";
+char message[] = "The group, arrested under a controversial new security law, were involved in an unofficial \"primary\" vote to select opposition candidates ahead of postponed 2020 elections. Hong Kong's security secretary has said their actions were \"subversive\". The arrests formed part of the largest crackdown since the law's introduction. Beijing imposed the legislation on the semi-autonomous territory in June, saying it was necessary to curb months of sometimes violent pro-democracy protests.\0";
+unsigned int msgLength = 20;
 
 TickType_t sleepTime = 3000;
 
@@ -51,54 +53,42 @@ void wifiCommunicate(void)
         }
     }
 
-    if (!ESP8266_getAPConnectStatus()) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to get Wifi Connection with resposne:\r\n%s\r\n", ESP_Data);
+    if (!checkMQTTConnection()) {
+        if (!connectToBroker()) {
+            dprint2uart(UART_STDOUT,
+                        "Fail to connect to MQTT broker\r\n");
+            if (!checkConnection(Tries)) {
+                dprint2uart(UART_STDOUT, "WiFi disconnected again!!!!!\r\n");
+            }
+            goto END;
+        }
     }
 
-    dprint2uart(UART_STDOUT,
-                "Connection Status:\r\n%s\r\n", ESP_Data);
+    while(1) {
+        unsigned long progressIDX = 0;
+        struct working data;
+        DBworking(&data, DID0);
+        unsigned long* progressIdxPtr = data.address;
 
-    // if (!ESP8266_setRFPower(RF_POWER)) {
-    //     dprint2uart(UART_STDOUT,
-    //                 "Fail to set RF power with response:\r\n%s\r\n", ESP_Data);
-    // }
-
-    // if (!ESP8266_getRFPower()) {
-    //     dprint2uart(UART_STDOUT,
-    //                 "Fail to get RF power with response:\r\n%s\r\n", ESP_Data);
-    // }
-
-    // dprint2uart(UART_STDOUT, "%s\r\n", ESP_Data);
-
-    /* int count = 20;
-    while (count) {
-        count--;
-        if (!checkMQTTConnection()) {
-            if (!connectToBroker()) {
-                dprint2uart(UART_STDOUT,
-                            "Fail to connect to MQTT broker\r\n");
-                if (!checkConnection(Tries)) {
-                    dprint2uart(UART_STDOUT, "WiFi disconnected again!!!!!\r\n");
-                    break;
-                }
-                continue;
-            }
+        if (DID0 >= 0) {
+            DBreadIn(progressIdxPtr, DID0);
+            progressIDX = *progressIdxPtr;
         }
 
-        if (!sendMQTTData(message)) {
+        char subMessage[msgLength] = { 0 };
+        progressIDX = getSubString(subMessage, progressIDX, msgLength);
+        
+        if (!sendMQTTData(subMessage)) {
             dprint2uart(UART_STDOUT,
                         "Fail to send MQTT data\r\n");
             continue;
         }
-
         dprint2uart(UART_STDOUT, "Send MQTT sucessfully\r\n");
 
-        TickType_t starTime = xTaskGetTickCount();
-        while (xTaskGetTickCount() - starTime < sleepTime) {
-            __delay_cycles(2400);
-        }
-    }*/
+        *progressIdxPtr = progressIDX;
+        DID0 = DBcommit(&data, 4, 1);
+    }
+
 
 END:
     ESP8266_disconnectFromAP();
@@ -311,4 +301,12 @@ void constructData(char *data)
 
     dprint2uart(UART_STDOUT, "pass construct data\r\n");
     return;
+}
+
+unsigned long getSubString(char* subStr, unsigned long start, unsigned int length)
+{
+    unsigned long cnt = (start + length >= strlen(message)) ? (strlen(message)-start) : length;
+    strcpy(subStr, message + start, cnt);
+
+    return (start + cnt);
 }
