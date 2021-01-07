@@ -306,8 +306,8 @@ void uartInit(unsigned int UART) {
 
         case UART_ESP:
             if (uartA3setup == 0) {
-                EUSCI_A_UART_initParam param = ESP_UART_Config;
-                
+                // EUSCI_A_UART_initParam param = ESP_UART_Config;
+                EUSCI_A_UART_initParam param = UartParams[FreqLevel-1];
                 if (STATUS_FAIL == EUSCI_A_UART_init(UART_ESP, &param))
                     return;
 

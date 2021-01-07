@@ -117,6 +117,7 @@ int main( void )
 	}
 	else{//system recovery
 	    failCount++;//logging the time of power failures
+		dprint2uart(UART_STDOUT, "MSP Restarted\r\n");
 
 	    /* DEBUG: if the device dies before we trigger the low voltage interrupt, the voltage is not set properly */
 	    if(voltage == ABOVE)//if we die before switch out

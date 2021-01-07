@@ -89,8 +89,12 @@ void wifiCommunicate(void)
             continue;
         }
 
-        if (progressIDX >= (strlen(message) - 1))
-            break;
+        if (progressIDX >= (strlen(message) - 1)) {
+            dprint2uart(UART_STDOUT, "A round has been done, take a rest.\r\n");
+            progressIDX = 0;
+            __delay_cycles(6400000);
+            dprint2uart(UART_STDOUT, "Continue next round.\r\n");
+        }
 
         
         struct working data;
@@ -98,7 +102,7 @@ void wifiCommunicate(void)
         unsigned long* progressIdxPtr = data.address;
         *progressIdxPtr = progressIDX;
         DID0 = DBcommit(&data, 4, 1);
-        __delay_cycles(320000);
+        __delay_cycles(640000);
     }
 
 
