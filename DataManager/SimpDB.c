@@ -270,12 +270,13 @@ void* DBread(int id){
             }
         taskEXIT_CRITICAL();
 
-        if(DB[id].cacheAdd != NULL){
-            accessCache(id);
-            return DB[id].cacheAdd;
-        }
-        else/* Return the data */
-            return access(id);
+        // if(DB[id].cacheAdd != NULL){
+        //     accessCache(id);
+        //     return DB[id].cacheAdd;
+        // }
+        // else/* Return the data */
+        //     return access(id);
+        return access(id);
     }
 }
 
