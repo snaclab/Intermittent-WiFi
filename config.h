@@ -32,11 +32,11 @@
 // #define AP_SSID            "LinIPHONE"
 // #define AP_PASSWORD        "0978637728"
 // #define STATIC_IP          "172.20.10.24"
+// #define SERVER_IP          "172.20.10.2"
 #define AP_SSID            "CITI_Guest"
 #define AP_PASSWORD        ""
 #define STATIC_IP          "192.168.49.123"
-#define SERVER_IP          "192.168.49.95"
-// #define SERVER_IP          "172.20.10.2"
+#define SERVER_IP          "192.168.49.183"
 #define SERVER_PORT        "9000"
 
 // MQTT config

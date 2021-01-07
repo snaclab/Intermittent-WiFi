@@ -14,14 +14,13 @@
 #include "wifi.h"
 #include "data.h"
 
-extern const char *squirtle_ptr;
 extern int DID0;
 
 int RF_POWER = 78;
 int Tries = 5;
 
-char message[] = "The group, arrested under a controversial new security law, were involved in an unofficial \"primary\" vote to select opposition candidates ahead of postponed 2020 elections. Hong Kong's security secretary has said their actions were \"subversive\". The arrests formed part of the largest crackdown since the law's introduction. Beijing imposed the legislation on the semi-autonomous territory in June, saying it was necessary to curb months of sometimes violent pro-democracy protests.\0";
-unsigned int msgLength = 20;
+char message[] = "Hello World. Let's debug together. Why the hell the upper message cannot be sent"; 
+const unsigned int maxMsgLength = 20;
 
 TickType_t sleepTime = 3000;
 
@@ -53,40 +52,53 @@ void wifiCommunicate(void)
         }
     }
 
-    if (!checkMQTTConnection()) {
-        if (!connectToBroker()) {
-            dprint2uart(UART_STDOUT,
-                        "Fail to connect to MQTT broker\r\n");
-            if (!checkConnection(Tries)) {
-                dprint2uart(UART_STDOUT, "WiFi disconnected again!!!!!\r\n");
+    while (true) {
+        if (!checkConnection(Tries)) {
+            dprint2uart(UART_STDOUT, "WiFi disconnected again!!!!!\r\n");
+            if (!establishWiFiConnection(Tries)) {
+                dprint2uart(UART_STDOUT,
+                            "Fail to establish WiFi connection with response:\r\n%s\r\n", ESP_Data);
+                goto END;
             }
-            goto END;
         }
-    }
 
-    while(1) {
+        if (!checkMQTTConnection()) {
+            if (!connectToBroker()) {
+                dprint2uart(UART_STDOUT,
+                            "Fail to connect to MQTT broker\r\n");
+                goto END;
+            }
+        }
+
         unsigned long progressIDX = 0;
-        struct working data;
-        DBworking(&data, DID0);
-        unsigned long* progressIdxPtr = data.address;
+        
+        dprint2uart(UART_STDOUT, "DID0: %d\r\n", DID0);
 
         if (DID0 >= 0) {
-            DBreadIn(progressIdxPtr, DID0);
-            progressIDX = *progressIdxPtr;
+            DBreadIn(&progressIDX, DID0);
         }
 
-        char subMessage[msgLength] = { 0 };
-        progressIDX = getSubString(subMessage, progressIDX, msgLength);
-        
+        dprint2uart(UART_STDOUT, "progressIDX: %d\r\n", progressIDX);
+
+        char subMessage[maxMsgLength];
+        progressIDX = getSubString(subMessage, progressIDX, 2);
+
         if (!sendMQTTData(subMessage)) {
             dprint2uart(UART_STDOUT,
                         "Fail to send MQTT data\r\n");
             continue;
         }
-        dprint2uart(UART_STDOUT, "Send MQTT sucessfully\r\n");
 
+        if (progressIDX >= (strlen(message) - 1))
+            break;
+
+        
+        struct working data;
+        DBworking(&data, DID0);
+        unsigned long* progressIdxPtr = data.address;
         *progressIdxPtr = progressIDX;
         DID0 = DBcommit(&data, 4, 1);
+        __delay_cycles(320000);
     }
 
 
@@ -200,8 +212,6 @@ bool connectToBroker(void)
 {
     char *ESP_Data = ESP8266_getBuffer();
 
-    dprint2uart(UART_STDOUT, "Going to Connect to Broker\r\n");
-
     if (!checkMQTTClientConfig()) {
         if (!setupMQTTClientConfig()) {
             dprint2uart(UART_STDOUT,
@@ -306,7 +316,9 @@ void constructData(char *data)
 unsigned long getSubString(char* subStr, unsigned long start, unsigned int length)
 {
     unsigned long cnt = (start + length >= strlen(message)) ? (strlen(message)-start) : length;
-    strcpy(subStr, message + start, cnt);
+    strncpy(subStr, message + start, cnt);
+    subStr[cnt] = '\0';
+    
 
     return (start + cnt);
 }
