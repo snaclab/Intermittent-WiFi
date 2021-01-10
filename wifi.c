@@ -34,6 +34,7 @@ void wifi(void)
 void wifiCommunicate(void)
 {
     registerTCB(IDWIFI);
+    dprint2uart(UART_STDOUT, "Begin Wifi test\r\n");
 
     char *ESP_Data = ESP8266_getBuffer();
 
@@ -92,7 +93,7 @@ void wifiCommunicate(void)
         if (progressIDX >= (strlen(message) - 1)) {
             dprint2uart(UART_STDOUT, "A round has been done, take a rest.\r\n");
             progressIDX = 0;
-            __delay_cycles(6400000);
+            __delay_cycles(640000000);
             dprint2uart(UART_STDOUT, "Continue next round.\r\n");
         }
 

@@ -34,7 +34,7 @@
 #define AT_RFPOWER        "AT+RFPOWER" // set RF power
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE];
-const TickType_t timeout = 20000;
+const TickType_t timeout = 10000;
 
 void emptyBuffer(void)
 {
