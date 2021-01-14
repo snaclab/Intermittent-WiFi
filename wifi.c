@@ -9,10 +9,10 @@
 #include "TaskManager/taskManager.h"
 #include "DataManager/SimpDB.h"
 #include "Devices/ESP8266.h"
+#include "AppTools/mqtt.h"
 #include "Tools/myuart.h"
 #include "config.h"
 #include "wifi.h"
-#include "data.h"
 
 extern int DID0;
 
@@ -155,109 +155,6 @@ bool checkConnection(int tries)
     return false;
 }
 
-bool sendTCP(char *requestBody, unsigned int requestLength)
-{
-    bool isSuccess = false;
-    char *ESP_Data = ESP8266_getBuffer();
-
-    if (!ESP8266_establishTCPConnection(TCP, SERVER_IP, SERVER_PORT)) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to establish connection to AP with response:\r\n%s\r\n", ESP_Data);
-    }
-
-    dprint2uart(UART_STDOUT, "TCP Connected:\r\n%s\r\n", ESP_Data);
-
-    if (!ESP8266_sendData(requestBody, requestLength)) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to send data to remote with response:\r\n%s\r\n", ESP_Data);
-        goto END;
-    }
-
-    dprint2uart(UART_STDOUT, "TCP Sent:\r\n%s\r\n", ESP_Data);
-
-    isSuccess = true;
-
-END:
-    ESP8266_disconnectServer("5");
-    return isSuccess;
-}
-
-bool checkMQTTClientConfig(void)
-{
-    char *ESP_Data = ESP8266_getBuffer();
-    if (!ESP8266_getMQTTUserConf()) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to get MQTT user config with response:\r\n%s\r\n", ESP_Data);
-    }
-
-    if (strstr(ESP_Data, MQTT_CLIENT_ID) != NULL) {
-        return true;
-    }
-    return false;
-}
-
-bool setupMQTTClientConfig(void)
-{
-    char *ESP_Data = ESP8266_getBuffer();
-    if (!ESP8266_setMQTTUserConf(MQTT_SCHEME, MQTT_CLIENT_ID, "", "", "")) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to setup MQTT user config with response:\r\n%s\r\n", ESP_Data);
-    }
-
-    if (!checkMQTTClientConfig()) {
-        dprint2uart(UART_STDOUT,
-                    "MQTT Config setup unsuccessful\r\n");
-        return false;
-    }
-
-    return true;
-}
-
-bool connectToBroker(void)
-{
-    char *ESP_Data = ESP8266_getBuffer();
-
-    if (!checkMQTTClientConfig()) {
-        if (!setupMQTTClientConfig()) {
-            dprint2uart(UART_STDOUT,
-                        "Fail to setup MQTT Config\r\n");
-            return false;
-        }
-    }
-
-    if (!ESP8266_connectToMQTTBroker(SERVER_IP, MQTT_PORT, 0)) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to connect to MQTT broker with response:\r\n%s\r\n", ESP_Data);
-        return false;
-    }
-
-    return true;
-}
-
-bool checkMQTTConnection(void)
-{
-    char *ESP_Data = ESP8266_getBuffer();
-    if (!ESP8266_getMQTTConnectStatus()) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to get MQTT Connection Status with response:\r\n%s\r\n", ESP_Data);
-    }
-    if (strstr(ESP_Data, SERVER_IP) != NULL) {
-        return true;
-    }
-    return false;
-}
-
-bool sendMQTTData(char *data)
-{
-    char *ESP_Data = ESP8266_getBuffer();
-    if (!ESP8266_publishMessage(MQTT_TOPIC, data, 0, 0)) {
-        dprint2uart(UART_STDOUT,
-                    "Fail to publish MQTT message with response:\r\n%s\r\n", ESP_Data);
-        return false;
-    }
-    return true;
-}
-
 bool initConnectModule(int tries)
 {
     // Init UART Interface
@@ -290,32 +187,6 @@ bool checkModule(int tries)
         tries--;
     }
     return false;
-}
-
-unsigned int constructPOSTRequest(char *endPoint, char *data, char *requestBody)
-{
-    int16_t dataSize = strlen(data);
-    // requestBody = "POST /post HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: 48\r\n\r\n{\"message\": \"hello world\", \"content\": \"abcabc\"}\r\n\r\n\0";
-    // requestBody = "POST /post HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: 648\r\n\r\n{\"message\": \"hello world\", \"content\": \"sdj;asliebjdurghdurghdkgsdgsdlhrgsdhr gsdrjsdl;jbsdlirjsrilbjsrlijsdgsdjilrgsijdrl;nsdijbsdl;rigjsd;lijsd;rlisjdrl;nirjl;gsdrjgsd;gjsd;lrifjsl;rfjisd;flbisdjl;bsjir;blfj'aesgjisdl;rbjisd;lsdjlri;hsjdrlgsdrglsdjrglisdjsl;dirjnsdrigshdlrgjsdrl;gisjdblsdirjbs;dlrigjsdl;rigjsdrl;gisdjr;lsdbjILELSijslefjas;elgjialeirjasleifj;eiljfiljfasuhgughuerfhai;efsjJ:LIEJ:ILJIEHFGSEFUH:faeafsleivjbl;aeifjas;leifjasl;ibjasel;fijskfhrukgsdhgushurhsrguidhr89348tyghjaslekf;asebhaksuehf;egasefkljhgsdkgjsl;rgkjdltuhgisejrg;i5jg4e5i8gj;ijs;lrijdbfl;tmnidftl;hndf'gdrjg;dlritjg;\"}\r\n\r\n\0"
-    /*sprintf(requestBody,
-            "POST %s HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %d\r\n\r\n%s\r\n\r\n\0",
-            endPoint,
-            dataSize,
-            data_ptr);*/
-
-    dprint2uart(UART_STDOUT, "pass sprintf request body\r\n");
-    return strlen(requestBody);
-}
-
-void constructData(char *data)
-{
-    sprintf(data,
-            "{\"message\": \"%s\", \"image\": \"%s\"}\0",
-            "abcc",
-            "avbas");
-
-    dprint2uart(UART_STDOUT, "pass construct data\r\n");
-    return;
 }
 
 unsigned long getSubString(char* subStr, unsigned long start, unsigned int length)
