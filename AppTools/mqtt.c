@@ -92,7 +92,7 @@ bool getMQTTRecvMessage(char *topic, char *recvData)
     }
 
     {
-        unsigned delimCount = 0, dataLength = 0;
+        unsigned int delimCount = 0, dataLength = 0;
         char * token = strtok(ESP_Data, ":");
         while (token != NULL) {
             token = strtok(NULL, ",");

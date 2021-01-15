@@ -40,6 +40,7 @@ bool ESP8266_getMQTTUserConf(void);
 bool ESP8266_getMQTTConnectStatus(void);
 bool ESP8266_connectToMQTTBroker(char *serverIP, int port, int reconnect);
 bool ESP8266_publishMessage(char *topic, char *data, int qos, int retain);
+bool ESP8266_getMQTTRecvMessagge(void);
 bool ESP8266_MQTTClean(void);
 
 void ESP8266_hardReset(void);

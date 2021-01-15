@@ -22,7 +22,10 @@ int Tries = 5;
 char message[] = "Hello World. Let's debug together. Why the hell the upper message cannot be sent"; 
 const unsigned int maxMsgLength = 20;
 
-TickType_t sleepTime = 3000;
+// might need #pragma DATA_SECTION or NOINIT to make sure msgLength is stored at NVM.
+int msgLength = 0;
+
+TickType_t updatePeriod = 3000;
 
 void wifiCommunicate(void);
 
@@ -82,7 +85,7 @@ void wifiCommunicate(void)
         dprint2uart(UART_STDOUT, "progressIDX: %d\r\n", progressIDX);
 
         char subMessage[maxMsgLength];
-        progressIDX = getSubString(subMessage, progressIDX, 2);
+        progressIDX = getSubString(subMessage, progressIDX, msgLength);
 
         if (!sendMQTTData(subMessage)) {
             dprint2uart(UART_STDOUT,
@@ -187,6 +190,18 @@ bool checkModule(int tries)
         tries--;
     }
     return false;
+}
+
+bool getDataLength(void)
+{
+    char strMsgLength[5];
+    if (!getMQTTRecvMessage("DataLength/Device1", strMsgLength)) {
+        dprint2uart(UART_STDOUT, "Fail to get data length.\r\n");
+        return false;
+    }
+    sscanf(strMsgLength, "%d", &msgLength);
+
+    return true;
 }
 
 unsigned long getSubString(char* subStr, unsigned long start, unsigned int length)

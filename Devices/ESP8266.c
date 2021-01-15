@@ -1,5 +1,6 @@
 
 #include <string.h>
+
 #include "ESP8266.h"
 #include "FreeRTOS.h"
 #include "driverlib.h"
@@ -32,6 +33,8 @@
 #define AT_MQTTPUB        "AT+MQTTPUB" // publish MQTT message
 #define AT_MQTTCLEAN      "AT+MQTTCLEAN" // close MQTT connection
 #define AT_RFPOWER        "AT+RFPOWER" // set RF power
+
+#define MQTTSUBRECV       "MQTTSUBRECV" // MQTT sub received
 
 char ESP8266_Buffer[ESP8266_BUFFER_SIZE];
 const TickType_t timeout = 10000;
@@ -267,6 +270,17 @@ bool ESP8266_MQTTClean(void)
     print2uart(UART_ESP, "%s=0\r\n", AT_MQTTCLEAN);
 
     return waitForResponse("OK");
+}
+
+bool ESP8266_getMQTTRecvMessage(void)
+{
+    if (strstr(ESP8266_Buffer, "_END_") == NULL) {
+        if (!waitForResponse("_END_")) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 char *ESP8266_getBuffer(void)
