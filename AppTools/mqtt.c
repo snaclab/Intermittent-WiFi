@@ -82,6 +82,18 @@ bool sendMQTTData(char *data)
     return true;
 }
 
+bool subScribeTopic(char *topic)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+    if (!ESP8266_subscribeTopic(topic, 0)) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to subscribe MQTT Topic with response:\r\n%s\r\n", ESP_Data);
+        return false;
+    }
+
+    return true;
+}
+
 bool getMQTTRecvMessage(char *topic, char *recvData)
 {
     char *ESP_Data = ESP8266_getBuffer();

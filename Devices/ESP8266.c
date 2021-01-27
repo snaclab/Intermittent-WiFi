@@ -30,6 +30,7 @@
 #define AT_CIPMODE        "AT+CIPMODE\r\n" // set connection mode
 #define AT_MQTTUSERCFG    "AT+MQTTUSERCFG" // set MQTT user config
 #define AT_MQTTCONN       "AT+MQTTCONN" // connect to MQTT broker
+#define AT_MQTTSUB        "AT+MQTTSUB" // subscribe to MQTT topic
 #define AT_MQTTPUB        "AT+MQTTPUB" // publish MQTT message
 #define AT_MQTTCLEAN      "AT+MQTTCLEAN" // close MQTT connection
 #define AT_RFPOWER        "AT+RFPOWER" // set RF power
@@ -261,6 +262,13 @@ bool ESP8266_getMQTTConnectStatus(void)
 bool ESP8266_publishMessage(char *topic, char *data, int qos, int retain)
 {
     print2uart(UART_ESP, "%s=0,\"%s\",\"%s\",%d,%d\r\n", AT_MQTTPUB, topic, data, qos, retain);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_subscribeTopic(char *topic, int qos)
+{
+    print2uart(UART_ESP, "%s=0,\"%s\", %d", AT_MQTTSUB, topic, qos);
 
     return waitForResponse("OK");
 }
