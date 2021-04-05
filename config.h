@@ -23,25 +23,29 @@
 #define IDMATH32  3
 #define IDWIFI    4
 
+#define DEVICE_ID       "D1"
+
 //WiFi
-// #define AP_SSID         "User"
-// #define AP_PASSWORD     "0975222283"
-// #define STATIC_IP       "192.168.50.23"
-// #define SERVER_IP       "192.168.50.2"
-// #define SERVER_PORT     "9000"
+#define AP_SSID         "User"
+#define AP_PASSWORD     "0975222283"
+#define STATIC_IP       "192.168.50.103"
+#define SERVER_IP       "192.168.50.189"
 // #define AP_SSID            "LinIPHONE"
 // #define AP_PASSWORD        "0978637728"
 // #define STATIC_IP          "172.20.10.24"
 // #define SERVER_IP          "172.20.10.2"
-#define AP_SSID            "CITI_Guest"
-#define AP_PASSWORD        ""
-#define STATIC_IP          "192.168.49.123"
-#define SERVER_IP          "192.168.49.183"
+// #define AP_SSID            "CITI_Guest"
+// #define AP_PASSWORD        ""
+// #define STATIC_IP          "192.168.49.123"
+// #define SERVER_IP          "192.168.49.183"
+
 #define SERVER_PORT        "9000"
 
 // MQTT config
 #define MQTT_CLIENT_ID     "ESP8266"
-#define MQTT_TOPIC         "ESP"
+#define DATA_TOPIC         "ESP"
+#define CONN_TOPIC         "MQTT_CONN"
+#define BW_TOPIC           "BW/D1"
 #define MQTT_SCHEME        1 // 1 for connect MQTT through TCP
 #define MQTT_PORT          1883
 #define MQTT_RECONNECT     0 // 0: MQTT will not auto-reconnect, 1: MQTT will auto-reconnect

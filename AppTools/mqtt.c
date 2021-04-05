@@ -14,10 +14,19 @@ bool checkMQTTClientConfig(void)
                     "Fail to get MQTT user config with response:\r\n%s\r\n", ESP_Data);
     }
 
-    if (strstr(ESP_Data, MQTT_CLIENT_ID) != NULL) {
-        return true;
+    if (strstr(ESP_Data, MQTT_CLIENT_ID) == NULL) {
+        return false;
     }
-    return false;
+
+    if (!ESP8266_getMQTTConnConf()) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to get MQTT Conn config with response:\r\n%s\r\n", ESP_Data);
+    }
+
+    if (strstr(ESP_Data, CONN_TOPIC) == NULL) {
+        return false;
+    }
+    return true;
 }
 
 bool setupMQTTClientConfig(void)
@@ -26,6 +35,11 @@ bool setupMQTTClientConfig(void)
     if (!ESP8266_setMQTTUserConf(MQTT_SCHEME, MQTT_CLIENT_ID, "", "", "")) {
         dprint2uart(UART_STDOUT,
                     "Fail to setup MQTT user config with response:\r\n%s\r\n", ESP_Data);
+    }
+
+    if (!ESP8266_setMQTTConnConf(0, 0, "MQTT_CONN", DEVICE_ID, 0, 0)) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to setup MQTT conn config with response:\r\n%s\r\n", ESP_Data);
     }
 
     if (!checkMQTTClientConfig()) {
@@ -41,6 +55,9 @@ bool connectToBroker(void)
 {
     char *ESP_Data = ESP8266_getBuffer();
 
+    char
+    
+
     if (!checkMQTTClientConfig()) {
         if (!setupMQTTClientConfig()) {
             dprint2uart(UART_STDOUT,
@@ -52,6 +69,12 @@ bool connectToBroker(void)
     if (!ESP8266_connectToMQTTBroker(SERVER_IP, MQTT_PORT, 0)) {
         dprint2uart(UART_STDOUT,
                     "Fail to connect to MQTT broker with response:\r\n%s\r\n", ESP_Data);
+        return false;
+    }
+
+    if (!ESP8266_publishMessage(CONN_TOPIC, "", 0, 0)) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to publish Conn message with response:\r\n%s\r\n", ESP_Data);
         return false;
     }
 
@@ -74,7 +97,7 @@ bool checkMQTTConnection(void)
 bool sendMQTTData(char *data)
 {
     char *ESP_Data = ESP8266_getBuffer();
-    if (!ESP8266_publishMessage(MQTT_TOPIC, data, 0, 0)) {
+    if (!ESP8266_publishMessage(DATA_TOPIC, data, 0, 0)) {
         dprint2uart(UART_STDOUT,
                     "Fail to publish MQTT message with response:\r\n%s\r\n", ESP_Data);
         return false;

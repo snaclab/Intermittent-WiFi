@@ -29,6 +29,7 @@
 #define AT_CIFSR          "AT+CIFSR\r\n" // look for local IP address
 #define AT_CIPMODE        "AT+CIPMODE\r\n" // set connection mode
 #define AT_MQTTUSERCFG    "AT+MQTTUSERCFG" // set MQTT user config
+#define AT_MQTTCONNCFG    "AT+MQTTCONNCFG" // set MQTT conn config
 #define AT_MQTTCONN       "AT+MQTTCONN" // connect to MQTT broker
 #define AT_MQTTSUB        "AT+MQTTSUB" // subscribe to MQTT topic
 #define AT_MQTTPUB        "AT+MQTTPUB" // publish MQTT message
@@ -238,9 +239,23 @@ bool ESP8266_setMQTTUserConf(int scheme, char *clientID, char *username, char *p
     return waitForResponse("OK");
 }
 
+bool ESP8266_setMQTTConnConf(int keepalive, int disable_clean_session, char *lwt_topic, char *device_id, int lwt_qos, int lwt_retain)
+{
+    print2uart(UART_ESP, "%s=0,%d,%d,\"%s\",\"%s,False\",%d,%d", AT_MQTTCONNCFG, keepalive, disable_clean_session, lwt_topic, device_id, lwt_qos, lwt_retain);
+
+    return waitForResponse("OK");
+}
+
 bool ESP8266_getMQTTUserConf(void)
 {
     print2uart(UART_ESP, "%s?\r\n", AT_MQTTUSERCFG);
+
+    return waitForResponse("OK");
+}
+
+bool ESP8266_getMQTTConnConf(void)
+{
+    print2uart(UART_ESP, "%s?\r\n", AT_MQTTCONNCFG);
 
     return waitForResponse("OK");
 }
