@@ -241,7 +241,7 @@ bool ESP8266_setMQTTUserConf(int scheme, char *clientID, char *username, char *p
 
 bool ESP8266_setMQTTConnConf(int keepalive, int disable_clean_session, char *lwt_topic, char *device_id, int lwt_qos, int lwt_retain)
 {
-    print2uart(UART_ESP, "%s=0,%d,%d,\"%s\",\"%s,False\",%d,%d", AT_MQTTCONNCFG, keepalive, disable_clean_session, lwt_topic, device_id, lwt_qos, lwt_retain);
+    print2uart(UART_ESP, "%s=0,%d,%d,\"%s\",\"%s/False\",%d,%d\r\n", AT_MQTTCONNCFG, keepalive, disable_clean_session, lwt_topic, device_id, lwt_qos, lwt_retain);
 
     return waitForResponse("OK");
 }
