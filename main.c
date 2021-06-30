@@ -38,6 +38,8 @@ int aboveFail;
 int DID0;
 #pragma NOINIT(DID1)
 int DID1;
+#pragma NOINIT(SENDMQTT)
+int SENDMQTT;
 
 
 /*
@@ -56,6 +58,7 @@ void intializeLOGVar()
     timeCounter = 0;
     DID0 = -1;
     DID1 = -1;
+	SENDMQTT = -1;
     resetTasks();//no task is created before
     constructor();//init data structures of data manager
     pvInitHeapVar();//init variables for the NVM heap
@@ -82,6 +85,8 @@ void ledOn(bool turnOn)
 		P1OUT = 0;
 	}
 }
+
+
 
 /*
  * description: Main function of this program

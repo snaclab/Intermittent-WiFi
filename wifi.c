@@ -15,15 +15,20 @@
 #include "wifi.h"
 
 extern int DID0;
+extern int DID1;
+extern int SENDMQTT;
 
 int RF_POWER = 78;
 int Tries = 5;
+int total_char = 22555;
 
-char message[] = "Hello World. Let's debug together. Why the hell the upper message cannot be sent"; 
-const unsigned int maxMsgLength = 20;
+// char message[] = "Hello World. Let's debug together. Why the hell the upper message cannot be sent"; 
+char subMessage[300];
 
 // might need #pragma DATA_SECTION or NOINIT to make sure msgLength is stored at NVM.
-int msgLength = 0;
+int msgLength = 5;
+char message[] = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+// char message[] = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 
 TickType_t updatePeriod = 3000;
 
@@ -34,10 +39,61 @@ void wifi(void)
     xTaskCreate(wifiCommunicate, "wifiCommunicate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDWIFI, INVM);
 }
 
+int mqttPublish(char *ESP_Data)
+{
+    if (!sendMQTTData("start")) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to start sending data\r\n");
+        return -2;
+    }
+
+    while (true) {
+        unsigned long progressIDX = 0;
+        
+        dprint2uart(UART_STDOUT, "DID1: %d\r\n", DID1);
+
+        if (DID1 >= 0) {
+            DBreadIn(&progressIDX, DID1);
+        }
+
+        dprint2uart(UART_STDOUT, "progressIDX: %d\r\n", progressIDX);
+
+        progressIDX = getSubString(subMessage, progressIDX, msgLength);
+
+        if (!sendMQTTData(subMessage)) {
+            dprint2uart(UART_STDOUT,
+                        "Fail to send MQTT data\r\n");
+            continue;
+        }
+
+        if (progressIDX >= total_char) {
+            progressIDX = 0;
+            struct working data;
+            DBworking(&data, DID1);
+            unsigned long* progressIdxPtr = data.address;
+            *progressIdxPtr = progressIDX;
+            DID1 = DBcommit(&data, 4, 1);
+
+            break;
+        }
+
+        struct working data;
+        DBworking(&data, DID1);
+        unsigned long* progressIdxPtr = data.address;
+        *progressIdxPtr = progressIDX;
+        DID1 = DBcommit(&data, 4, 1);
+
+        __delay_cycles(640000);
+    }
+
+    return -1;
+}
+
 void wifiCommunicate(void)
 {
     registerTCB(IDWIFI);
     dprint2uart(UART_STDOUT, "Begin Wifi test\r\n");
+    // dprint2uart(UART_STDOUT, "DID1: %d\r\n", DID1);
 
     char *ESP_Data = ESP8266_getBuffer();
 
@@ -55,63 +111,42 @@ void wifiCommunicate(void)
             goto END;
         }
     }
+    
+    if (!checkMQTTConnection()) {
+        if (!connectToBroker()) {
+            dprint2uart(UART_STDOUT,
+                        "Fail to connect to MQTT broker\r\n");
+            goto END;
+        }
+    }
 
     while (true) {
-        if (!checkConnection(Tries)) {
-            dprint2uart(UART_STDOUT, "WiFi disconnected again!!!!!\r\n");
-            if (!establishWiFiConnection(Tries)) {
-                dprint2uart(UART_STDOUT,
-                            "Fail to establish WiFi connection with response:\r\n%s\r\n", ESP_Data);
-                goto END;
-            }
-        }
-
-        if (!checkMQTTConnection()) {
-            if (!connectToBroker()) {
-                dprint2uart(UART_STDOUT,
-                            "Fail to connect to MQTT broker\r\n");
-                goto END;
-            }
-        }
-
-        unsigned long progressIDX = 0;
-        
         dprint2uart(UART_STDOUT, "DID0: %d\r\n", DID0);
 
         if (DID0 >= 0) {
-            DBreadIn(&progressIDX, DID0);
+            DBreadIn(&SENDMQTT, DID0);
         }
 
-        dprint2uart(UART_STDOUT, "progressIDX: %d\r\n", progressIDX);
+        dprint2uart(UART_STDOUT, "SENDMQTT: %d\r\n", SENDMQTT);
 
-        char subMessage[maxMsgLength];
-        progressIDX = getSubString(subMessage, progressIDX, msgLength);
-
-        if (!sendMQTTData(subMessage)) {
-            dprint2uart(UART_STDOUT,
-                        "Fail to send MQTT data\r\n");
-            continue;
+        if (SENDMQTT == 1) {
+            SENDMQTT = mqttPublish(ESP_Data);
         }
 
-        if (progressIDX >= (strlen(message) - 1)) {
-            dprint2uart(UART_STDOUT, "A round has been done, take a rest.\r\n");
-            progressIDX = 0;
-            __delay_cycles(640000000);
-            dprint2uart(UART_STDOUT, "Continue next round.\r\n");
+        if (SENDMQTT == 0) {
+            break;
         }
 
-        
         struct working data;
         DBworking(&data, DID0);
-        unsigned long* progressIdxPtr = data.address;
-        *progressIdxPtr = progressIDX;
+        unsigned int* sendMQTTPtr = data.address;
+        *sendMQTTPtr = SENDMQTT;
         DID0 = DBcommit(&data, 4, 1);
-        __delay_cycles(640000);
+        __delay_cycles(6400000);
     }
 
-
 END:
-    ESP8266_disconnectFromAP();
+    // ESP8266_disconnectFromAP();
     dprint2uart(UART_STDOUT, "At the end \r\n");
     unregisterTCB(IDWIFI);
     return;
@@ -162,6 +197,8 @@ bool initConnectModule(int tries)
 {
     // Init UART Interface
     uartInit(UART_ESP);
+    // init button interrupt
+    initButtonInterrupt();
     uartBufferFlush();
 
     // Hard reset ESP8266
@@ -206,10 +243,71 @@ bool getDataLength(void)
 
 unsigned long getSubString(char* subStr, unsigned long start, unsigned int length)
 {
-    unsigned long cnt = (start + length >= strlen(message)) ? (strlen(message)-start) : length;
-    strncpy(subStr, message + start, cnt);
-    subStr[cnt] = '\0';
+    // int msg_ptr = start % strlen(message);
+    // unsigned long cnt = (msg_ptr + length >= strlen(message)) ? (strlen(message)-msg_ptr) : length;
+    // strncpy(subStr, message + msg_ptr, cnt);
+    // subStr[cnt] = '\0';
     
 
-    return (start + cnt);
+    // return (start + cnt);
+
+    strncpy(subStr, message, strlen(message));
+    subStr[strlen(message)] = '\0';
+
+    return (start + strlen(message));
+
 }
+
+void initButtonInterrupt(void)
+{
+	GPIO_setAsInputPinWithPullUpResistor(GPIO_PORT_P5, GPIO_PIN5);
+	GPIO_selectInterruptEdge(GPIO_PORT_P5, GPIO_PIN5, GPIO_HIGH_TO_LOW_TRANSITION);
+
+	// Disable the GPIO power-on default high-impedance mode to activate previously configured port settings
+    PMM_unlockLPM5();
+
+	// Set all P5IFG to zero
+
+    P5IFG = 0x00;
+
+    GPIO_enableInterrupt(GPIO_PORT_P5, GPIO_PIN5);                                      // S2 P5.5: PxIE register
+
+    __bis_SR_register(GIE);  // Enable all interrupts
+}
+
+#pragma vector=PORT5_VECTOR
+__interrupt void Port_5(void)
+{
+	dprint2uart(UART_STDOUT, "In button interrupt.\r\n");
+
+    switch (P5IFG)
+    {
+        // case 0b01000000: // S1 P5.6 = 64: toggle red LED
+        // {
+        //     P1OUT ^= BIT0;          // Toggle P1.0
+        //     P5IFG &= ~BIT6;         // P5.6 clear interrupt flag
+        // }
+        // break; 
+        case 0b00100000: // P5.5
+        {
+			P5IFG &= ~BIT5; // P5.5 clear interrupt flag
+            if (DID0 >= 0) {
+                DBreadIn(&SENDMQTT, DID0);
+            }
+			
+            SENDMQTT = 1;
+
+            struct working data;
+            DBworking(&data, DID0);
+            unsigned long* sendMQTTPtr = data.address;
+            *sendMQTTPtr = SENDMQTT;
+            DID0 = DBcommit(&data, 4, 1);
+            __delay_cycles(6400000);
+        }
+        break;
+        default: // should not be here!
+        break;
+    }
+
+}
+
