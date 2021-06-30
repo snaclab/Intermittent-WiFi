@@ -7,7 +7,7 @@
 #include "FreeRTOS.h"
 
 #define UARTA3_BUFFERSIZE  1024
-#define UART_ESP           EUSCI_A3_BASE
+#define UART_ESP           EUSCI_A1_BASE
 #define UART_STDOUT        EUSCI_A0_BASE
 
 extern unsigned int FreqLevel;

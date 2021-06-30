@@ -207,8 +207,8 @@ void uartBufferFlush()
 }
 
 // UART A3 Interrumpt
-#pragma vector = EUSCI_A3_VECTOR
-__interrupt void EUSCIA3_ISR(void)
+#pragma vector = EUSCI_A1_VECTOR
+__interrupt void EUSCIA1_ISR(void)
 {
     unsigned char c;
     unsigned char status = EUSCI_A_UART_getInterruptStatus(UART_ESP,
@@ -321,9 +321,9 @@ void uartInit(unsigned int UART) {
                                              EUSCI_A_UART_RECEIVE_INTERRUPT);
 
                 // Select UART TXD for UART_ESP, P6.0
-                GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P6, GPIO_PIN0, GPIO_PRIMARY_MODULE_FUNCTION);
+                GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN5, GPIO_SECONDARY_MODULE_FUNCTION);
                 // Select UART RXD for UART_ESP, P6.1
-                GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P6, GPIO_PIN1, GPIO_PRIMARY_MODULE_FUNCTION);
+                GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN6, GPIO_SECONDARY_MODULE_FUNCTION);
 
                 // Enable global interrupt, not sure if there's problem to enable twice
                 __enable_interrupt();
