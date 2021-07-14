@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "Devices/ESP8266.h"
+#include "FreeRTOS.h"
 #include "Tools/myuart.h"
 #include "config.h"
 
@@ -93,11 +94,16 @@ bool checkMQTTConnection(void)
 bool sendMQTTData(char *data)
 {
     char *ESP_Data = ESP8266_getBuffer();
-    if (!ESP8266_publishMessage(DATA_TOPIC, data, 0, 0)) {
+    int dataLength = strlen(data);
+    TickType_t start = xTaskGetTickCount();
+    if (!ESP8266_publishRawMessage(DATA_TOPIC, data, dataLength, MQTT_QOS, 0)) {
         dprint2uart(UART_STDOUT,
                     "Fail to publish MQTT message with response:\r\n%s\r\n", ESP_Data);
         return false;
     }
+    TickType_t end = xTaskGetTickCount();
+    dprint2uart(UART_STDOUT,
+                "Overall MQTT publish time elapse: %d\r\n", (end - start));
     return true;
 }
 

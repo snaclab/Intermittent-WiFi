@@ -28,11 +28,13 @@
 #define AT_CIPCLOSE       "AT+CIPCLOSE" // close connection
 #define AT_CIFSR          "AT+CIFSR\r\n" // look for local IP address
 #define AT_CIPMODE        "AT+CIPMODE\r\n" // set connection mode
+#define AT_HTTPCPOST      "AT+HTTPCPOST" // post http data
 #define AT_MQTTUSERCFG    "AT+MQTTUSERCFG" // set MQTT user config
 #define AT_MQTTCONNCFG    "AT+MQTTCONNCFG" // set MQTT conn config
 #define AT_MQTTCONN       "AT+MQTTCONN" // connect to MQTT broker
 #define AT_MQTTSUB        "AT+MQTTSUB" // subscribe to MQTT topic
 #define AT_MQTTPUB        "AT+MQTTPUB" // publish MQTT message
+#define AT_MQTTPUBRAW     "AT+MQTTPUBRAW" // publish raw MQTT message
 #define AT_MQTTCLEAN      "AT+MQTTCLEAN" // close MQTT connection
 #define AT_RFPOWER        "AT+RFPOWER" // set RF power
 
@@ -205,6 +207,44 @@ bool ESP8266_disconnectServer(char *linkID)
     return waitForResponse("OK");
 }
 
+bool ESP8266_sendHTTPData(char *url, char *data, unsigned int dataSize)
+{
+    TickType_t start = xTaskGetTickCount();
+    print2uart(UART_ESP, "%s=\"%s\",%d\r\n", AT_HTTPCPOST, url, dataSize);
+
+    if (!waitForResponse(">")) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to procede to insert data.\r\n");
+        return false;
+    }
+    TickType_t end = xTaskGetTickCount();
+
+    dprint2uart(UART_STDOUT,
+                "First Part: %d\r\n", (end - start));
+
+    start = xTaskGetTickCount();
+
+    print2uart(UART_ESP, data);
+
+    end = xTaskGetTickCount();
+
+    dprint2uart(UART_STDOUT,
+                "Second Part: %d\r\n", (end - start));
+
+    start = xTaskGetTickCount();
+
+    if (!waitForResponse("OK")) {
+        return false;
+    }
+
+    end = xTaskGetTickCount();
+
+    dprint2uart(UART_STDOUT,
+                "Third Part: %d\r\n", (end - start));
+
+    return true;
+}
+
 bool ESP8266_sendData(char *data, unsigned int dataSize)
 {
     print2uart(UART_ESP, "%s=%d\r\n", AT_CIPSEND, dataSize);
@@ -281,9 +321,47 @@ bool ESP8266_publishMessage(char *topic, char *data, int qos, int retain)
     return waitForResponse("OK");
 }
 
+bool ESP8266_publishRawMessage(char *topic, char *data, int dataLength, int qos, int retain)
+{
+    TickType_t start = xTaskGetTickCount();
+    print2uart(UART_ESP, "%s=0,\"%s\",%d,%d,%d\r\n", AT_MQTTPUBRAW, topic, dataLength, qos, retain);
+
+    if (!waitForResponse(">")) {
+        dprint2uart(UART_STDOUT, "Fail to procede to insert data.\r\n");
+        return false;
+    }
+    TickType_t end = xTaskGetTickCount();
+
+    dprint2uart(UART_STDOUT,
+                "First Part: %d\r\n", (end - start));
+
+    start = xTaskGetTickCount();
+
+    print2uart(UART_ESP,"%s", data);
+
+    end = xTaskGetTickCount();
+
+    dprint2uart(UART_STDOUT,
+                "Second Part: %d\r\n", (end - start));
+
+    start = xTaskGetTickCount();
+
+    if (!waitForResponse("OK")) {
+        return false;
+    }
+
+    end = xTaskGetTickCount();
+    
+    dprint2uart(UART_STDOUT,
+                "Third Part: %d\r\n", (end - start));
+
+    return true;
+    // return waitForResponse("OK");
+}
+
 bool ESP8266_subscribeTopic(char *topic, int qos)
 {
-    print2uart(UART_ESP, "%s=0,\"%s\", %d", AT_MQTTSUB, topic, qos);
+    print2uart(UART_ESP, "%s=0,\"%s\", %d\r\n", AT_MQTTSUB, topic, qos);
 
     return waitForResponse("OK");
 }

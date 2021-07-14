@@ -3,6 +3,7 @@
 
 #include "Tools/myuart.h"
 #include "Devices/ESP8266.h"
+#include "FreeRTOS.h"
 #include "config.h"
 
 bool sendTCP(char *requestBody, unsigned int requestLength)
@@ -30,6 +31,25 @@ bool sendTCP(char *requestBody, unsigned int requestLength)
 END:
     ESP8266_disconnectServer("5");
     return isSuccess;
+}
+
+bool sendHTTPData(char *path, char *data)
+{
+    char *ESP_Data = ESP8266_getBuffer();
+    int dataLength = strlen(data);
+    char url[] = "http://192.168.50.110:9000/ESP/1";
+    // sprintf(url, "http://%s:%s/%s\0", SERVER_IP, SERVER_PORT, path);
+    TickType_t start = xTaskGetTickCount();
+    if (!ESP8266_sendHTTPData(url, data, dataLength)) {
+        dprint2uart(UART_STDOUT,
+                    "Fail to send HTTP data with response\r\n%s\r\n", ESP_Data);
+        return false;
+    }
+    TickType_t end = xTaskGetTickCount();
+    dprint2uart(UART_STDOUT,
+                "Overall HTTP send time elapse: %d\r\n", (end - start));
+
+    return true;
 }
 
 unsigned int constructPOSTRequest(char *endPoint, char *data, char *requestBody)

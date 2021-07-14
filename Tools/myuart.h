@@ -14,7 +14,7 @@ extern unsigned int FreqLevel;
 extern int uartA0setup;
 extern int uartA3setup;
 
-#define DEBUG 1
+#define DEBUG 0
 
 // Init serial
 void uartInit(unsigned int UART);

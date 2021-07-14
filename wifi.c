@@ -10,9 +10,13 @@
 #include "DataManager/SimpDB.h"
 #include "Devices/ESP8266.h"
 #include "AppTools/mqtt.h"
+#include "AppTools/tcp.h"
 #include "Tools/myuart.h"
 #include "config.h"
 #include "wifi.h"
+
+#pragma NOINIT(subMessage)
+char subMessage[ 4000 ];
 
 extern int DID0;
 extern int DID1;
@@ -22,13 +26,14 @@ int RF_POWER = 78;
 int Tries = 5;
 int total_char = 22555;
 
-// char message[] = "Hello World. Let's debug together. Why the hell the upper message cannot be sent"; 
-char subMessage[300];
+// char message[] = "Hello World. Let's debug together. Why the hell the upper message cannot be sent";
 
 // might need #pragma DATA_SECTION or NOINIT to make sure msgLength is stored at NVM.
-int msgLength = 5;
-char message[] = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+int msgLength = 2048;
+// char message[] = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 // char message[] = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+char message[] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+
 
 TickType_t updatePeriod = 3000;
 
@@ -83,7 +88,7 @@ int mqttPublish(char *ESP_Data)
         *progressIdxPtr = progressIDX;
         DID1 = DBcommit(&data, 4, 1);
 
-        __delay_cycles(640000);
+        __delay_cycles(6400);
     }
 
     return -1;
@@ -243,18 +248,35 @@ bool getDataLength(void)
 
 unsigned long getSubString(char* subStr, unsigned long start, unsigned int length)
 {
+    unsigned int cnt = 0;
+    // char sHead[] = "{\"D1\":\"";
+    // char sFoot[] = "\"}";
+
+    // strncpy(subStr, sHead, strlen(sHead));
+
+    while (cnt < msgLength) {
+        if (msgLength - cnt >= strlen(message)) {
+            strncpy(subStr + cnt, message, strlen(message));
+            cnt += strlen(message);
+        } else {
+            strncpy(subStr + cnt, message, msgLength - cnt);
+            cnt = msgLength;
+        }
+    }
+
+    // strncpy(subStr+ strlen(sHead) + cnt, sFoot, strlen(sFoot));
+    // cnt = cnt + strlen(sHead) + strlen(sFoot);
     // int msg_ptr = start % strlen(message);
     // unsigned long cnt = (msg_ptr + length >= strlen(message)) ? (strlen(message)-msg_ptr) : length;
     // strncpy(subStr, message + msg_ptr, cnt);
-    // subStr[cnt] = '\0';
-    
+    subStr[cnt] = '\0';
 
-    // return (start + cnt);
+    return (start + msgLength);
 
-    strncpy(subStr, message, strlen(message));
-    subStr[strlen(message)] = '\0';
+    // strncpy(subStr, message, strlen(message));
+    // subStr[strlen(message)+1] = '\0';
 
-    return (start + strlen(message));
+    // return (start + strlen(message));
 
 }
 
@@ -290,7 +312,7 @@ __interrupt void Port_5(void)
         // break; 
         case 0b00100000: // P5.5
         {
-			P5IFG &= ~BIT5; // P5.5 clear interrupt flag
+	        P5IFG &= ~BIT5; // P5.5 clear interrupt flag
             if (DID0 >= 0) {
                 DBreadIn(&SENDMQTT, DID0);
             }

@@ -122,6 +122,19 @@ EUSCI_A_UART_initParam ESP_UART_Config =
    EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION
 };
 
+EUSCI_A_UART_initParam H_ESP_UART_Config =
+{
+   EUSCI_A_UART_CLOCKSOURCE_SMCLK,
+   10,                                                                        // clockPrescalar
+   0,                                                                          // firstModReg
+   0,                                                                        // secondModReg
+   EUSCI_A_UART_NO_PARITY,
+   EUSCI_A_UART_LSB_FIRST,
+   EUSCI_A_UART_ONE_STOP_BIT,
+   EUSCI_A_UART_MODE,
+   EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION
+};
+
 int isTimeSet = 0;
 
 void print2uart(unsigned int UART, char* format,...)
@@ -210,21 +223,13 @@ void uartBufferFlush()
 #pragma vector = EUSCI_A1_VECTOR
 __interrupt void EUSCIA1_ISR(void)
 {
-    unsigned char c;
     unsigned char status = EUSCI_A_UART_getInterruptStatus(UART_ESP,
                                                            EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
     EUSCI_A_UART_clearInterrupt(UART_ESP, EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
 
     if (status == EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG) {
-        c = EUSCI_A_UART_receiveData(UART_ESP);
-
-        if (UARTA3_BUFFER_IS_FULL) {
-            // TODO: Handle overflow, try buffer overflow
-            dprint2uart(UART_STDOUT, "uart a3 buffer is full.\r\n");
-        } else {
-            UARTA3Data[UARTA3WriteIndex] = c;
-            UARTA3_INCREMENT_WRITE_INDEX;
-        }
+        UARTA3Data[UARTA3WriteIndex] = EUSCI_A_UART_receiveData(UART_ESP);
+        UARTA3_INCREMENT_WRITE_INDEX;
     }
 }
 
@@ -306,8 +311,8 @@ void uartInit(unsigned int UART) {
 
         case UART_ESP:
             if (uartA3setup == 0) {
-                // EUSCI_A_UART_initParam param = ESP_UART_Config;
-                EUSCI_A_UART_initParam param = UartParams[FreqLevel-1];
+                EUSCI_A_UART_initParam param = ESP_UART_Config;
+                // EUSCI_A_UART_initParam param = UartParams[FreqLevel-1];
                 if (STATUS_FAIL == EUSCI_A_UART_init(UART_ESP, &param))
                     return;
 
