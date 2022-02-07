@@ -13,13 +13,43 @@
 
 #define DEBUGOVERFLOW //take it out for fast recovery
 
-#define NUMTASK 12 //10 user tasks + 2 FreeRTOS tasks
-#define MAXREAD 8
+#define NUMTASK   5 //3 user tasks + 2 FreeRTOS tasks
+#define MAXREAD   8
 
-//Used for demo
-#define IDIDLE 0
-#define IDTIMER 1
-#define IDMATMUL 2
-#define IDMATH32 3
+//Task ID
+#define IDIDLE    0
+#define IDTIMER   1
+#define IDMATMUL  2
+#define IDMATH32  3
+#define IDWIFI    4
+
+#define DEVICE_ID       "1"
+
+//WiFi
+#define AP_SSID         "AP_SSID"
+#define AP_PASSWORD     "AP_PASSWORD"
+#define STATIC_IP       "STATIC IP"
+#define SERVER_IP       "SERVER IP"
+// #define AP_SSID            "LinIPHONE"
+// #define AP_PASSWORD        "0978637728"
+// #define STATIC_IP          "172.20.10.24"
+// #define SERVER_IP          "172.20.10.2"
+// #define AP_SSID            "CITI_Guest"
+// #define AP_PASSWORD        ""
+// #define STATIC_IP          "192.168.49.123"
+// #define SERVER_IP          "192.168.49.183"
+
+#define SERVER_PORT        "9000"
+
+// MQTT config
+#define MQTT_CLIENT_ID     "D1"
+#define DATA_TOPIC         "ESP/1"
+#define CONN_TOPIC         "MQTT_CONN"
+#define BW_TOPIC           "BW/D1"
+#define MQTT_SCHEME        1 // 1 for connect MQTT through TCP
+#define MQTT_PORT          1883
+#define MQTT_RECONNECT     0 // 0: MQTT will not auto-reconnect, 1: MQTT will auto-reconnect
+#define MQTT_QOS           1 // could be 0, 1, and 2, default is 0
+#define MQTT_RETAIN        0 // Retain flag
 
 #endif /* CONFIG_H_ */

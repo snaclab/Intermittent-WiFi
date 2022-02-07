@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/home/larrylin/ti/ccs1010/ccs/ccs_base/msp430/include"
+                "/home/larrylin/ti/ccs1010/ccs/ccs_base/msp430/include",
+                "${workspaceFolder}"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

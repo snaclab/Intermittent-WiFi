@@ -2,6 +2,8 @@
  *  main.h
  *
  */
+
+#include "Tools/myuart.h"
 //Heap allocation
 #pragma NOINIT(ucHeap)
 uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
@@ -9,7 +11,8 @@ uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
 //time counter
 #pragma NOINIT(timeCounter)
 unsigned long timeCounter;
-int uartsetup = 0;
+int uartA0setup = 0;
+int uartA3setup = 0;
 
 /* Use for recovery */
 #pragma DATA_SECTION(recoverable, ".map") //indicate whether task stacks exist
@@ -48,6 +51,8 @@ void vApplicationStackOverflowHook( TaskHandle_t pxTask, char *pcTaskName )
 {
     ( void ) pcTaskName;
     ( void ) pxTask;
+
+    dprint2uart(UART_STDOUT, "overflow task: %s\r\n", pcTaskName);
 
     /* Force an assert. */
     configASSERT( ( volatile void * ) NULL );

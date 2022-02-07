@@ -1,14 +1,28 @@
 /*
  * myserial.c
  *
- *  Created on: 2017¦~5¤ë25¤é
+ *  Created on: 2017ï¿½~5ï¿½ï¿½25ï¿½ï¿½
  *      Author: Meenchen
  */
 #include <stdio.h>
+#include <stdint.h>
 #include <stdarg.h>
-#include <Tools/myuart.h>
+
 #include "driverlib.h"
-#include <Tools/dvfs.h>
+#include "FreeRTOS.h"
+#include "Tools/dvfs.h"
+#include "Tools/myuart.h"
+
+// Implement a circular queue
+volatile unsigned char UARTA3Data[UARTA3_BUFFERSIZE];
+volatile unsigned int UARTA3ReadIndex;
+volatile unsigned int UARTA3WriteIndex;
+
+#define UARTA3_INCREMENT_READ_INDEX     __disable_interrupt(); UARTA3ReadIndex = (UARTA3ReadIndex + 1) % UARTA3_BUFFERSIZE; __enable_interrupt();
+#define UARTA3_INCREMENT_WRITE_INDEX    UARTA3WriteIndex = (UARTA3WriteIndex + 1) % UARTA3_BUFFERSIZE
+#define UARTA3_BUFFER_IS_EMPTY          (UARTA3WriteIndex - UARTA3ReadIndex) == 0 ? true : false
+#define UARTA3_BUFFER_IS_FULL           (UARTA3WriteIndex + 1) % UARTA3_BUFFERSIZE == UARTA3ReadIndex ? true : false
+
 
 // The following structure will configure the EUSCI_A port to run at 9600 baud from an 1~16MHz ACLK
 // The baud rate values were calculated at: http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSP430BaudRateConverter/index.html
@@ -95,8 +109,35 @@ EUSCI_A_UART_initParam UartParams[8] = {
    EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION
 }};
 
+EUSCI_A_UART_initParam ESP_UART_Config = 
+{
+   EUSCI_A_UART_CLOCKSOURCE_SMCLK,
+   8,                                                                        // clockPrescalar
+   10,                                                                          // firstModReg
+   247,                                                                        // secondModReg
+   EUSCI_A_UART_NO_PARITY,
+   EUSCI_A_UART_LSB_FIRST,
+   EUSCI_A_UART_ONE_STOP_BIT,
+   EUSCI_A_UART_MODE,
+   EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION
+};
 
-void print2uart(char* format,...)
+EUSCI_A_UART_initParam H_ESP_UART_Config =
+{
+   EUSCI_A_UART_CLOCKSOURCE_SMCLK,
+   10,                                                                        // clockPrescalar
+   0,                                                                          // firstModReg
+   0,                                                                        // secondModReg
+   EUSCI_A_UART_NO_PARITY,
+   EUSCI_A_UART_LSB_FIRST,
+   EUSCI_A_UART_ONE_STOP_BIT,
+   EUSCI_A_UART_MODE,
+   EUSCI_A_UART_OVERSAMPLING_BAUDRATE_GENERATION
+};
+
+int isTimeSet = 0;
+
+void print2uart(unsigned int UART, char* format,...)
 {
     char *traverse;
     int i;
@@ -111,7 +152,7 @@ void print2uart(char* format,...)
     {
         while( *traverse != '%' && *traverse != '\0' )
         {
-            EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)*traverse);
+            EUSCI_A_UART_transmitData(UART, (uint8_t)*traverse);
             traverse++;
         }
 
@@ -125,28 +166,28 @@ void print2uart(char* format,...)
         {
             case 'c' :
                 i = va_arg(arg,int);        //Fetch char argument
-                EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)i);
+                EUSCI_A_UART_transmitData(UART, (uint8_t)i);
                 break;
             case 'l' :
                 l = va_arg(arg,unsigned long);        //Fetch Decimal/Integer argument
-                print2uart(convertl(l,10));
+                print2uart(UART, convertl(l,10));
                 break;
             case 'd' :
                 i = va_arg(arg,int);        //Fetch Decimal/Integer argument
                 if(i<0)
                 {
                     i = -i;
-                    EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)'-');
+                    EUSCI_A_UART_transmitData(UART, (uint8_t)'-');
                 }
-                print2uart(convert(i,10));
+                print2uart(UART, convert(i,10));
                 break;
             case 's':
                 s = va_arg(arg,char *);         //Fetch string
-                print2uart(s);
+                print2uart(UART, s);
                 break;
             case 'x':
                 i = va_arg(arg,unsigned int); //Fetch Hexadecimal representation
-                print2uart(convert(i,16));
+                print2uart(UART, convert(i,16));
                 break;
         }
     }
@@ -154,19 +195,51 @@ void print2uart(char* format,...)
     va_end(arg);
 }
 
-void dummyprint(char* format,...)
+void dummyPrint(unsigned int UART, char* format,...)
 {
     return;
 }
 
+unsigned char readFromUartA3()
+{
+    unsigned char c;
+    c = UARTA3Data[UARTA3ReadIndex];
+    UARTA3_INCREMENT_READ_INDEX;
 
-void print2uartlength(char* str,int length)
+    return c;
+}
+
+bool uartA3GotMessage()
+{
+    return !UARTA3_BUFFER_IS_EMPTY;
+}
+
+void uartBufferFlush()
+{
+    UARTA3ReadIndex = UARTA3WriteIndex = 0;
+}
+
+// UART A3 Interrumpt
+#pragma vector = EUSCI_A1_VECTOR
+__interrupt void EUSCIA1_ISR(void)
+{
+    unsigned char status = EUSCI_A_UART_getInterruptStatus(UART_ESP,
+                                                           EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
+    EUSCI_A_UART_clearInterrupt(UART_ESP, EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG);
+
+    if (status == EUSCI_A_UART_RECEIVE_INTERRUPT_FLAG) {
+        UARTA3Data[UARTA3WriteIndex] = EUSCI_A_UART_receiveData(UART_ESP);
+        UARTA3_INCREMENT_WRITE_INDEX;
+    }
+}
+
+void print2uartLength(unsigned int UART, char* str, int length)
 {
     int i;
 
     for(i = 0; i < length; i++)
     {
-        EUSCI_A_UART_transmitData(EUSCI_A0_BASE, (uint8_t)*(str+i));
+        EUSCI_A_UART_transmitData(UART, (uint8_t)*(str+i));
     }
 }
 
@@ -207,31 +280,71 @@ char *convertl(unsigned long num, int base)
 }
 
 /* Initialize serial */
-void uartinit()
-{
-    if(uartsetup == 0){
-        // Configure UART
-        EUSCI_A_UART_initParam param = UartParams[FreqLevel-1];
+void uartInit(unsigned int UART) {
+    // Configure UART
+    
+    switch(UART) {
+        case UART_STDOUT:
+            if(uartA0setup == 0) {
+                EUSCI_A_UART_initParam param = UartParams[FreqLevel-1];
+                if(STATUS_FAIL == EUSCI_A_UART_init(UART_STDOUT, &param))
+                    return;
 
-        if(STATUS_FAIL == EUSCI_A_UART_init(EUSCI_A0_BASE, &param))
-            return;
+                EUSCI_A_UART_enable(UART_STDOUT);
 
-        EUSCI_A_UART_enable(EUSCI_A0_BASE);
+                EUSCI_A_UART_clearInterrupt(UART_STDOUT,
+                                            EUSCI_A_UART_RECEIVE_INTERRUPT);
 
-        EUSCI_A_UART_clearInterrupt(EUSCI_A0_BASE,
-                                    EUSCI_A_UART_RECEIVE_INTERRUPT);
+                // Enable USCI_A0 RX interrupt
+                EUSCI_A_UART_enableInterrupt(UART_STDOUT,
+                                             EUSCI_A_UART_RECEIVE_INTERRUPT); // Enable interrupt
 
-        // Enable USCI_A0 RX interrupt
-        EUSCI_A_UART_enableInterrupt(EUSCI_A0_BASE,
-                                     EUSCI_A_UART_RECEIVE_INTERRUPT); // Enable interrupt
+                // Select UART TXD on P2.0
+                GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN0, GPIO_SECONDARY_MODULE_FUNCTION);
+                
+                // Enable global interrupt
+                __enable_interrupt();
+                
+                uartA0setup = 1;
+            }
+            break;
 
-        // Enable globale interrupt
-        __enable_interrupt();
+        case UART_ESP:
+            if (uartA3setup == 0) {
+                EUSCI_A_UART_initParam param = ESP_UART_Config;
+                // EUSCI_A_UART_initParam param = UartParams[FreqLevel-1];
+                if (STATUS_FAIL == EUSCI_A_UART_init(UART_ESP, &param))
+                    return;
 
-        // Select UART TXD on P2.0
-        GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN0, GPIO_SECONDARY_MODULE_FUNCTION);
-        uartsetup = 1;
+                EUSCI_A_UART_enable(UART_ESP);
+
+                EUSCI_A_UART_clearInterrupt(UART_ESP,
+                                            EUSCI_A_UART_RECEIVE_INTERRUPT);
+
+                // Enable USCI_A3 RX interrupt
+                EUSCI_A_UART_enableInterrupt(UART_ESP,
+                                             EUSCI_A_UART_RECEIVE_INTERRUPT);
+
+                // Select UART TXD for UART_ESP, P6.0
+                GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P2, GPIO_PIN5, GPIO_SECONDARY_MODULE_FUNCTION);
+                // Select UART RXD for UART_ESP, P6.1
+                GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P2, GPIO_PIN6, GPIO_SECONDARY_MODULE_FUNCTION);
+
+                // Enable global interrupt, not sure if there's problem to enable twice
+                __enable_interrupt();
+                
+                uartA3setup = 1;
+            }
+            break;
+
+        default:
+            break;
     }
 }
 
-
+//DEBUG
+char *printUARTBuffer(void)
+{
+    return UARTA3Data;
+}
+//End DEBUG

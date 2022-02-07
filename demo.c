@@ -3,11 +3,11 @@
  *
  * Descriptions: Implementation of the demo application
  */
-#include <config.h>
-#include <TaskManager/taskManager.h>
-#include <DataManager/SimpDB.h>
-#include <demo.h>
-#include <Tools/myuart.h>
+#include "config.h"
+#include "TaskManager/taskManager.h"
+#include "DataManager/SimpDB.h"
+#include "demo.h"
+#include "Tools/myuart.h"
 
 //matrix multiplication
 void matrixmultiplication();
@@ -23,7 +23,7 @@ void demo()
 {
     xTaskCreate( math32, "math32", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDMATH32, INVM);
     xTaskCreate( matrixmultiplication, "matrix multiplication", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY, NULL, IDMATMUL, INVM);
-    print2uart("new demo Task Create Done\r\n");
+    dprint2uart(UART_STDOUT, "new demo Task Create Done\r\n");
 }
 
 typedef unsigned short UInt16;

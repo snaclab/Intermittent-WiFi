@@ -9,14 +9,18 @@
 #include <semphr.h>
 #include <stdio.h>
 
-#include <config.h>
-#include <RecoveryHandler/Recovery.h>
-#include <Tools/myuart.h>
-#include <Tools/hwsetup.h>
-#include <TaskManager/taskManager.h>
-#include <DataManager/SimpDB.h>
-#include <main.h>
-#include <demo.h>
+#include <msp430fr5994.h>
+
+#include "config.h"
+#include "driverlib.h"
+#include "RecoveryHandler/Recovery.h"
+#include "Tools/myuart.h"
+#include "Tools/hwsetup.h"
+#include "TaskManager/taskManager.h"
+#include "DataManager/SimpDB.h"
+#include "main.h"
+#include "demo.h"
+#include "wifi.h"
 
 //record some information for status of lengthy tasks
 #pragma NOINIT(runHigh)
@@ -34,6 +38,8 @@ int aboveFail;
 int DID0;
 #pragma NOINIT(DID1)
 int DID1;
+#pragma NOINIT(SENDMQTT)
+int SENDMQTT;
 
 
 /*
@@ -52,11 +58,35 @@ void intializeLOGVar()
     timeCounter = 0;
     DID0 = -1;
     DID1 = -1;
+	SENDMQTT = -1;
     resetTasks();//no task is created before
     constructor();//init data structures of data manager
     pvInitHeapVar();//init variables for the NVM heap
     resetAllTasks();//all tasks are executed from the beginning
 }
+
+/*
+ * description: turn on or turn off LED
+*/
+void ledOn(bool turnOn)
+{
+	P1DIR = BIT0;
+
+	P1OUT = 0;
+
+	if (turnOn) {
+		// dprint2uart(UART_STDOUT, "led blink\r\n");
+		unsigned int i = 1;
+		while (i != 0) {
+			P1OUT ^= BIT0;
+			__delay_cycles(10000000);
+		}
+	} else {
+		P1OUT = 0;
+	}
+}
+
+
 
 /*
  * description: Main function of this program
@@ -78,13 +108,21 @@ int main( void )
 	    initVDetector();
 
 	    //create application tasks here
-	    demo();
+	    //demo();
+
+		// ledOn(true);
+
+		// create wifi
+		wifi();
+
+		// ledOn(false);
 
 	    //start scheduler of freeRTOS
 	    vTaskStartScheduler();
 	}
 	else{//system recovery
 	    failCount++;//logging the time of power failures
+		dprint2uart(UART_STDOUT, "MSP Restarted\r\n");
 
 	    /* DEBUG: if the device dies before we trigger the low voltage interrupt, the voltage is not set properly */
 	    if(voltage == ABOVE)//if we die before switch out

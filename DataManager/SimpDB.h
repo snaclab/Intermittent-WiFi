@@ -20,7 +20,7 @@ static unsigned char WSRValid[NUMTASK];
 
 struct working{//working space of data for tasks
     void* address;
-    int loc;//1 stands for SRAM, 0 stands for¡@NVM
+    int loc;//1 stands for SRAM, 0 stands forï¿½@NVM
     int id;//-1 for create
 };
 
@@ -54,7 +54,7 @@ void * getTCBVM(int taskID);
 
 /* functions for validation*/
 void registerTCB(int id);
-void unresgisterTCB(int id);
+void unregisterTCB(int id);
 
 /* internal functions */
 static unsigned long min(unsigned long a, unsigned long b){

@@ -245,7 +245,7 @@ void freePreviousTasks(){
         if(unfinished[i] == 1){
             //see if the address is valid
             if(prvcheckAdd(TCBAdd[i]) == 1){
-                dprint2uart("Delete: %d\r\n", TCBNum[i]);
+                dprint2uart(NULL, "Delete: %d\r\n", TCBNum[i]);
                 //Since all tasks information, e.g., list of ready queue, is saved in VM, we only needs to consider the stack and free the stack and TCB
                 tskTCB* tcb = TCBAdd[i];
                 vPortFree(tcb->pxStack);
