@@ -26,10 +26,10 @@
 #define DEVICE_ID       "1"
 
 //WiFi
-#define AP_SSID         "EXP_USER"
-#define AP_PASSWORD     "0975222283"
-#define STATIC_IP       "192.168.50.103"
-#define SERVER_IP       "192.168.50.110"
+#define AP_SSID         "AP_SSID"
+#define AP_PASSWORD     "AP_PASSWORD"
+#define STATIC_IP       "STATIC IP"
+#define SERVER_IP       "SERVER IP"
 // #define AP_SSID            "LinIPHONE"
 // #define AP_PASSWORD        "0978637728"
 // #define STATIC_IP          "172.20.10.24"
